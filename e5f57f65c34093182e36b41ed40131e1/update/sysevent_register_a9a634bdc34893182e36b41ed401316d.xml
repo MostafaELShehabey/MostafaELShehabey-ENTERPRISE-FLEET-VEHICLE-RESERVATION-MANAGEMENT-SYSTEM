@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sysevent_register">
+    <sysevent_register action="INSERT_OR_UPDATE">
+        <caller_access/>
+        <derived_priority>100</derived_priority>
+        <description>FLEET_RESERVATION_CANCELLED -&gt; manager + Fleet Dispatchers; requester when cancelled by someone else</description>
+        <event_name>x_1850693_enterp_0.reservation.cancelled</event_name>
+        <fired_by>FLEET-37, 36, 65</fired_by>
+        <priority>100</priority>
+        <queue/>
+        <suffix/>
+        <sys_class_name>sysevent_register</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 23:51:35</sys_created_on>
+        <sys_id>a9a634bdc34893182e36b41ed401316d</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1850693_enterp_0.reservation.cancelled</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sysevent_register_a9a634bdc34893182e36b41ed401316d</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 23:51:35</sys_updated_on>
+        <table>x_1850693_enterp_0_reservation</table>
+    </sysevent_register>
+</record_update>
