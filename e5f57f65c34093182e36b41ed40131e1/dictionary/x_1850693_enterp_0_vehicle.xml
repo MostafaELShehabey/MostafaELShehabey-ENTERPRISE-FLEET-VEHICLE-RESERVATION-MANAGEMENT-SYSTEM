@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="c306b769c34093182e36b41ed40131a4" label="Vehicle" max_length="40" name="x_1850693_enterp_0_vehicle" type="collection">
+        <element label="Last Maintenance Date" mandatory="true" max_length="40" name="last_maintenance_date" type="glide_date"/>
+        <element label="Insurance Expiry" mandatory="true" max_length="40" name="insurance_expiry" type="glide_date"/>
+        <element label="Depot Location" mandatory="true" max_length="32" name="depot_location" reference="cmn_location" type="reference"/>
+        <element label="Max Reservation Days" max_length="40" name="max_reservation_days" type="integer"/>
+        <element label="Year" mandatory="true" max_length="40" name="year" type="integer"/>
+        <element default="0" label="Next Oil Change Mileage" mandatory="true" max_length="40" name="next_oil_change_mileage" read_only="true" type="integer"/>
+        <element default="0" label="Current Odometer" mandatory="true" max_length="40" name="current_odometer" type="integer"/>
+        <element default="javascript:global.getNextObjNumberPadded();" label="Number" max_length="40" name="number" read_only="true" type="string"/>
+        <element label="Notes" max_length="4000" name="notes" type="string"/>
+        <element default="0" label="Last Maintenance Odometer" mandatory="true" max_length="40" name="last_maintenance_odometer" type="integer"/>
+        <element default="javascript:current.getTableName();" label="Class" max_length="80" name="sys_class_name" type="sys_class_name"/>
+        <element display="true" label="Vehicle ID" mandatory="true" max_length="40" name="vehicle_id" type="string" unique="true"/>
+        <element label="License Plate" mandatory="true" max_length="20" name="license_plate" type="string"/>
+        <element label="Registration Expiry" mandatory="true" max_length="40" name="registration_expiry" type="glide_date"/>
+        <element label="Assigned Driver" max_length="32" name="assigned_driver" reference="sys_user" type="reference"/>
+        <element label="VIN (last 6)" mandatory="true" max_length="6" name="vin" type="string"/>
+        <element label="Make" mandatory="true" max_length="40" name="make" type="string"/>
+        <element label="Model" mandatory="true" max_length="40" name="model" type="string"/>
+        <element label="Next State Inspection Date" mandatory="true" max_length="40" name="next_state_inspection_date" type="glide_date"/>
+        <element choice="1" label="Vehicle Category" mandatory="true" max_length="40" name="vehicle_category" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Sedan" sequence="100" value="SEDAN"/>
+                <element inactive_on_update="false" label="Cargo Van" sequence="300" value="CARGO_VAN"/>
+                <element inactive_on_update="false" label="Box Truck" sequence="400" value="BOX_TRUCK"/>
+                <element inactive_on_update="false" label="SUV" sequence="200" value="SUV"/>
+            </choice>
+        </element>
+        <element choice="3" default="AVAILABLE" label="Status" mandatory="true" max_length="40" name="status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="In Custody" sequence="300" value="IN_CUSTODY"/>
+                <element inactive_on_update="false" label="Retired" sequence="500" value="RETIRED"/>
+                <element inactive_on_update="false" label="Available" sequence="100" value="AVAILABLE"/>
+                <element inactive_on_update="false" label="Maintenance" sequence="400" value="MAINTENANCE"/>
+                <element inactive_on_update="false" label="Reserved" sequence="200" value="RESERVED"/>
+            </choice>
+        </element>
+        <index name="index">
+            <element name="assigned_driver"/>
+        </index>
+        <index name="index2">
+            <element name="depot_location"/>
+        </index>
+        <index name="index3">
+            <element name="sys_class_name"/>
+        </index>
+    </element>
+</database>
