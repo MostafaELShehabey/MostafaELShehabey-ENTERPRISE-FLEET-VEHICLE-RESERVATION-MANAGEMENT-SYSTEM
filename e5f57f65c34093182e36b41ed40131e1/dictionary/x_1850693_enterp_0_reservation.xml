@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element attributes="audit=true" db_object_id="2fb544f1c3c093182e36b41ed40131c5" extends="task" label="Reservation" max_length="40" name="x_1850693_enterp_0_reservation" type="collection">
+        <element label="Manager Approver" max_length="32" name="manager_approver" read_only="true" reference="sys_user" type="reference"/>
+        <element label="Check-out Odometer" name="check_out_odometer" type="integer"/>
+        <element label="Late Cancellation" name="late_cancellation" read_only="true" type="boolean"/>
+        <element label="Assigned Driver" max_length="32" name="assigned_driver" reference="sys_user" type="reference"/>
+        <element choice="1" label="Purpose" mandatory="true" max_length="40" name="purpose" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Business" sequence="100" value="BUSINESS"/>
+                <element inactive_on_update="false" label="Client Meeting" sequence="200" value="CLIENT_MEETING"/>
+                <element inactive_on_update="false" label="Cargo Transport" sequence="300" value="CARGO_TRANSPORT"/>
+                <element inactive_on_update="false" label="Other" sequence="400" value="OTHER"/>
+            </choice>
+        </element>
+        <element label="Actual Fuel Cost" name="actual_fuel_cost" read_only="true" type="currency"/>
+        <element label="Cost Center" mandatory="true" max_length="32" name="cost_center" reference="cmn_cost_center" type="reference"/>
+        <element label="Is Overdue" name="is_overdue" read_only="true" type="boolean"/>
+        <element label="Start Date/Time" mandatory="true" name="start_datetime" type="glide_date_time"/>
+        <element label="Estimated Miles" mandatory="true" name="estimated_miles" type="integer"/>
+        <element label="Waitlist Priority" name="waitlist_priority" read_only="true" type="integer"/>
+        <element label="End Date/Time" mandatory="true" name="end_datetime" type="glide_date_time"/>
+        <element label="Requested Depot" mandatory="true" max_length="32" name="requested_depot" reference="cmn_location" type="reference"/>
+        <element label="Priority Override" name="priority_override" type="integer"/>
+        <element default="javascript:gs.getUserID()" label="Requested By" mandatory="true" max_length="32" name="requested_by" reference="sys_user" type="reference"/>
+        <element label="Check-in Odometer" name="check_in_odometer" type="integer"/>
+        <element label="Damage Reported" name="damage_reported" read_only="true" type="boolean"/>
+        <element choice="3" default="DRAFT" label="Reservation State" mandatory="true" max_length="40" name="reservation_state" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Interrupted" sequence="1300" value="INTERRUPTED"/>
+                <element inactive_on_update="false" label="Pending Assignment" sequence="500" value="PENDING_ASSIGNMENT"/>
+                <element inactive_on_update="false" label="Waitlisted" sequence="600" value="WAITLISTED"/>
+                <element inactive_on_update="false" label="Pending Approval" sequence="200" value="PENDING_APPROVAL"/>
+                <element inactive_on_update="false" label="Approved" sequence="300" value="APPROVED"/>
+                <element inactive_on_update="false" label="Draft" sequence="100" value="DRAFT"/>
+                <element inactive_on_update="false" label="Assigned" sequence="700" value="ASSIGNED"/>
+                <element inactive_on_update="false" label="Ready for Pickup" sequence="800" value="READY_FOR_PICKUP"/>
+                <element inactive_on_update="false" label="Active" sequence="900" value="ACTIVE"/>
+                <element inactive_on_update="false" label="Cancelled" sequence="1100" value="CANCELLED"/>
+                <element inactive_on_update="false" label="No Show" sequence="1200" value="NO_SHOW"/>
+                <element inactive_on_update="false" label="Rejected" sequence="400" value="REJECTED"/>
+                <element inactive_on_update="false" label="Completed" sequence="1000" value="COMPLETED"/>
+            </choice>
+        </element>
+        <element choice="1" label="Vehicle Category" mandatory="true" max_length="40" name="vehicle_category" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Cargo Van" sequence="300" value="CARGO_VAN"/>
+                <element inactive_on_update="false" label="Box Truck" sequence="400" value="BOX_TRUCK"/>
+                <element inactive_on_update="false" label="SUV" sequence="200" value="SUV"/>
+                <element inactive_on_update="false" label="Sedan" sequence="100" value="SEDAN"/>
+            </choice>
+        </element>
+        <element label="Cancellation Reason" max_length="250" name="cancellation_reason" type="string"/>
+        <element label="Replaces Reservation" max_length="32" name="replaces_reservation" read_only="true" reference="x_1850693_enterp_0_reservation" type="reference"/>
+        <element label="Assigned Vehicle" max_length="32" name="assigned_vehicle" reference="x_1850693_enterp_0_vehicle" type="reference"/>
+        <element label="Recurring Parent" max_length="32" name="recurring_parent_id" reference="x_1850693_enterp_0_reservation" type="reference"/>
+        <element default="0" label="Violation Count" name="violation_count" read_only="true" type="integer"/>
+    </element>
+</database>

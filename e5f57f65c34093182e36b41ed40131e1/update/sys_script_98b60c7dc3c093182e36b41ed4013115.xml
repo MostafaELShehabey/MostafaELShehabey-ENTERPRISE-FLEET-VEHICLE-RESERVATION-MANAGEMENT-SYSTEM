@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_reservation</collection>
+        <condition/>
+        <description>Manager approver, depot/driver defaults, date/odometer/priority checks, short description, task.active for closed states.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Reservation - Defaults and validation</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-19: defaults, field validation, short description and task.active (D-01, D-03, D-20, D-26)
+    var LEAD_HOURS = 2;                       // V1: start at least now + 2h (replacements skip, D-26)
+    var CLOSED = ['COMPLETED', 'CANCELLED', 'REJECTED', 'NO_SHOW']; // INTERRUPTED is closed by FLEET-42
+    var DIRECTOR = 'x_1850693_enterp_0.director';
+
+    var isInsert = current.operation() == 'insert';
+    var state = current.getValue('reservation_state');
+    var stateChanged = isInsert || current.reservation_state.changes();
+    var errors = [];
+
+    // Requester-derived defaults
+    if (isInsert || current.requested_by.changes()) {
+        var req = current.requested_by.getRefRecord();
+        if (!req.isValidRecord()) {
+            errors.push('Requested By is required.');
+        } else {
+            if (req.manager.nil()) {
+                errors.push('Requester ' + req.getDisplayValue() + ' has no manager, so the reservation cannot be routed for approval.');
+            } else {
+                current.setValue('manager_approver', req.getValue('manager'));
+            }
+            if (current.requested_depot.nil() && !req.location.nil()) {
+                current.setValue('requested_depot', req.getValue('location'));
+            }
+            if (isInsert && current.assigned_driver.nil()) {
+                current.setValue('assigned_driver', req.getUniqueValue());
+            }
+        }
+    }
+
+    // requested_by / cost_center read-only after DRAFT (except director/admin)
+    if (!isInsert && previous.getValue('reservation_state') != 'DRAFT' &&
+        (current.requested_by.changes() || current.cost_center.changes()) && !gs.hasRole(DIRECTOR)) {
+        errors.push('Requested By and Cost Center cannot be changed after the reservation leaves DRAFT.');
+    }
+
+    // Dates
+    var start = current.start_datetime.nil() ? null : new GlideDateTime(current.getValue('start_datetime'));
+    var end = current.end_datetime.nil() ? null : new GlideDateTime(current.getValue('end_datetime'));
+    if (start && end && end.compareTo(start) <= 0) {
+        errors.push('End Date/Time must be after Start Date/Time.');
+    }
+    if (start && (isInsert || current.start_datetime.changes()) && current.replaces_reservation.nil()) {
+        var earliest = new GlideDateTime();
+        earliest.addSeconds(LEAD_HOURS * 3600);
+        if (start.compareTo(earliest) < 0) {
+            errors.push('Start Date/Time must be at least ' + LEAD_HOURS + ' hours from now.');
+        }
+    }
+
+    if (!current.estimated_miles.nil() && parseInt(current.getValue('estimated_miles'), 10) <= 0) {
+        errors.push('Estimated Miles must be greater than 0.');
+    }
+
+    if (!current.priority_override.nil()) {
+        var p = parseInt(current.getValue('priority_override'), 10);
+        if (p < 1 || p > 5) {
+            errors.push('Priority Override must be between 1 and 5.');
+        }
+    }
+
+    // State-dependent mandatory fields
+    if (state == 'CANCELLED' && !(current.getValue('cancellation_reason') || '').trim()) {
+        errors.push('Cancellation Reason is required to cancel a reservation.');
+    }
+    if (stateChanged && state == 'ACTIVE' && current.check_out_odometer.nil()) {
+        errors.push('Check-out Odometer is required to start the trip.');
+    }
+    if (stateChanged && state == 'COMPLETED') {
+        if (current.check_in_odometer.nil()) {
+            errors.push('Check-in Odometer is required to complete the trip.');
+        } else if (parseInt(current.getValue('check_in_odometer'), 10) < parseInt(current.getValue('check_out_odometer') || '0', 10)) {
+            errors.push('Check-in Odometer cannot be less than Check-out Odometer.');
+        }
+    }
+
+    if (errors.length) {
+        for (var i = 0; i < errors.length; i++) {
+            gs.addErrorMessage(errors[i]);
+        }
+        current.setAbortAction(true);
+        return;
+    }
+
+    current.setValue('short_description', current.vehicle_category.getDisplayValue() + ' reservation ' +
+        current.start_datetime.getDisplayValue() + ' - ' + current.end_datetime.getDisplayValue());
+
+    // D-01: task.active follows reservation_state
+    if (CLOSED.indexOf(state) > -1) {
+        current.setValue('active', false);
+    }
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:22:03</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>98b60c7dc3c093182e36b41ed4013115</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Reservation - Defaults and validation</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_98b60c7dc3c093182e36b41ed4013115</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:22:03</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=98b60c7dc3c093182e36b41ed4013115"/>
+</record_update>

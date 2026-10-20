@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_ui_section caption="" section_id="fcb60c7dc3c093182e36b41ed401314d" sys_domain="global" table="x_1850693_enterp_0_reservation" version="3" view="">
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>number</element>
+            <position>0</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>7cb60c7dc3c093182e36b41ed4013150</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>requested_by</element>
+            <position>1</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>b4b60c7dc3c093182e36b41ed4013152</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>manager_approver</element>
+            <position>2</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>34b60c7dc3c093182e36b41ed4013153</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>requested_depot</element>
+            <position>3</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>f4b60c7dc3c093182e36b41ed4013179</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>vehicle_category</element>
+            <position>4</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>74b60c7dc3c093182e36b41ed401317a</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>start_datetime</element>
+            <position>5</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>f0b60c7dc3c093182e36b41ed401317b</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>end_datetime</element>
+            <position>6</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>70b60c7dc3c093182e36b41ed401317c</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>purpose</element>
+            <position>7</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>fcb60c7dc3c093182e36b41ed401317c</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>cost_center</element>
+            <position>8</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>7cb60c7dc3c093182e36b41ed401317d</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>estimated_miles</element>
+            <position>9</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>f8b60c7dc3c093182e36b41ed401317e</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>reservation_state</element>
+            <position>10</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>78b60c7dc3c093182e36b41ed401317f</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>short_description</element>
+            <position>11</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>f4b60c7dc3c093182e36b41ed4013180</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>description</element>
+            <position>12</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>74b60c7dc3c093182e36b41ed4013181</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>cancellation_reason</element>
+            <position>13</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>f0b60c7dc3c093182e36b41ed4013182</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>late_cancellation</element>
+            <position>14</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>70b60c7dc3c093182e36b41ed4013183</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_element action="INSERT_OR_UPDATE">
+            <element>replaces_reservation</element>
+            <position>15</position>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_id>fcb60c7dc3c093182e36b41ed4013183</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_ui_formatter/>
+            <sys_ui_section caption="NULL" display_value="" name="x_1850693_enterp_0_reservation" sys_domain="global" view="Default view">fcb60c7dc3c093182e36b41ed401314d</sys_ui_section>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <type/>
+        </sys_ui_element>
+        <sys_ui_section action="INSERT_OR_UPDATE">
+            <caption/>
+            <header>false</header>
+            <name>x_1850693_enterp_0_reservation</name>
+            <roles/>
+            <sys_class_name>sys_ui_section</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+            <sys_domain>global</sys_domain>
+            <sys_domain_path>/</sys_domain_path>
+            <sys_id>fcb60c7dc3c093182e36b41ed401314d</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>x_1850693_enterp_0_reservation</sys_name>
+            <sys_overrides/>
+            <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+            <sys_update_name>sys_ui_section_fcb60c7dc3c093182e36b41ed401314d</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+            <sys_user/>
+            <title>false</title>
+            <view display_value="Default view" name="NULL">Default view</view>
+            <view_name/>
+        </sys_ui_section>
+    </sys_ui_section>
+</record_update>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_reservation</collection>
+        <condition/>
+        <description>D-02: rejects initial states and transitions not in the allowed tables. Runs for all users and scripts.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>FLEET - Reservation State Guard</name>
+        <order>50</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-19 / D-02: Reservation State Guard. Rejects any initial state or transition not listed below.
+    var TRANSITIONS = {
+        DRAFT: ['PENDING_APPROVAL', 'CANCELLED'],
+        PENDING_APPROVAL: ['APPROVED', 'REJECTED', 'CANCELLED'],
+        APPROVED: ['PENDING_ASSIGNMENT', 'WAITLISTED', 'CANCELLED'],
+        PENDING_ASSIGNMENT: ['ASSIGNED', 'WAITLISTED', 'CANCELLED'],
+        WAITLISTED: ['PENDING_ASSIGNMENT', 'CANCELLED'],
+        ASSIGNED: ['READY_FOR_PICKUP', 'ACTIVE', 'PENDING_ASSIGNMENT', 'NO_SHOW', 'CANCELLED'],
+        READY_FOR_PICKUP: ['ACTIVE', 'PENDING_ASSIGNMENT', 'NO_SHOW', 'CANCELLED'],
+        ACTIVE: ['COMPLETED', 'INTERRUPTED']
+        // COMPLETED, REJECTED, CANCELLED, NO_SHOW, INTERRUPTED are terminal
+    };
+
+    var to = current.getValue('reservation_state');
+
+    if (current.operation() == 'insert') {
+        // Form save = DRAFT, portal = PENDING_APPROVAL, recall replacement (D-26) = PENDING_ASSIGNMENT
+        var allowedInsert = to == 'DRAFT' || to == 'PENDING_APPROVAL' ||
+            (to == 'PENDING_ASSIGNMENT' && !current.replaces_reservation.nil());
+        if (!allowedInsert) {
+            gs.addErrorMessage('Invalid initial state ' + to + '.');
+            current.setAbortAction(true);
+        }
+        return;
+    }
+
+    if (!current.reservation_state.changes()) {
+        return;
+    }
+
+    var from = previous.getValue('reservation_state');
+    var allowed = TRANSITIONS[from] || [];
+    if (allowed.indexOf(to) < 0) {
+        gs.addErrorMessage('Invalid state change from ' + from + ' to ' + to);
+        current.setAbortAction(true);
+    }
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:22:02</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>8cb6447dc3c093182e36b41ed401318b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FLEET - Reservation State Guard</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_8cb6447dc3c093182e36b41ed401318b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:22:02</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=8cb6447dc3c093182e36b41ed401318b"/>
+</record_update>

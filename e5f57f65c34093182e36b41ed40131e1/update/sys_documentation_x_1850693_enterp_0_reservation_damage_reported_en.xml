@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_documentation element="damage_reported" label="Damage Reported" language="en" table="x_1850693_enterp_0_reservation">
+        <sys_documentation action="INSERT_OR_UPDATE">
+            <element>damage_reported</element>
+            <help/>
+            <hint/>
+            <label>Damage Reported</label>
+            <language>en</language>
+            <name>x_1850693_enterp_0_reservation</name>
+            <plural>Damage Reporteds</plural>
+            <sys_class_name>sys_documentation</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:21:06</sys_created_on>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_name>Damage Reported</sys_name>
+            <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+            <sys_policy/>
+            <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+            <sys_update_name>sys_documentation_x_1850693_enterp_0_reservation_damage_reported_en</sys_update_name>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:21:06</sys_updated_on>
+            <url/>
+            <url_target/>
+        </sys_documentation>
+    </sys_documentation>
+</record_update>

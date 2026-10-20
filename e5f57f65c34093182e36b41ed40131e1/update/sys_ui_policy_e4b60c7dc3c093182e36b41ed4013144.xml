@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_ui_policy">
+    <sys_ui_policy action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <conditions table="x_1850693_enterp_0_reservation">reservation_state!=DRAFT<item display_value="Draft" endquery="false" field="reservation_state" goto="false" newquery="false" operator="!=" or="false" value="DRAFT"/>
+        </conditions>
+        <description/>
+        <global>true</global>
+        <inherit>false</inherit>
+        <isolate_script>true</isolate_script>
+        <model_id/>
+        <model_table/>
+        <on_load>true</on_load>
+        <order>110</order>
+        <reverse_if_false>true</reverse_if_false>
+        <run_scripts>true</run_scripts>
+        <script_false><![CDATA[function onCondition() {
+    g_form.setReadOnly('requested_by', false);
+    g_form.setReadOnly('cost_center', false);
+}]]></script_false>
+        <script_true><![CDATA[function onCondition() {
+    // FLEET-19: requested_by and cost_center are read-only after DRAFT, except for director/admin
+    if (!g_user.hasRole('x_1850693_enterp_0.director')) {
+        g_form.setReadOnly('requested_by', true);
+        g_form.setReadOnly('cost_center', true);
+    }
+}]]></script_true>
+        <set_values/>
+        <short_description>Reservation - Lock requester and cost center after DRAFT</short_description>
+        <sys_class_name>sys_ui_policy</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:22:05</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>e4b60c7dc3c093182e36b41ed4013144</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Reservation - Lock requester and cost center after DRAFT</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_ui_policy_e4b60c7dc3c093182e36b41ed4013144</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:22:05</sys_updated_on>
+        <table>x_1850693_enterp_0_reservation</table>
+        <ui_type>0</ui_type>
+        <view/>
+    </sys_ui_policy>
+</record_update>
