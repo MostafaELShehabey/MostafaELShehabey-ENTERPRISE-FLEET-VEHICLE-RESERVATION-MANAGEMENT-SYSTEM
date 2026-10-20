@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetConfig</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-27: typed access to Fleet Management properties with defaults.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetConfig</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetConfig = Class.create();
+
+FleetConfig.PREFIX = 'x_1850693_enterp_0.';
+
+/**
+ * FLEET-27: fallbacks used only when a property is missing or empty.
+ * The real values live in the Fleet Management system properties.
+ */
+FleetConfig.DEFAULTS = {
+    'pm.interval_miles': 5000,
+    'pm.interval_days': 180,
+    'sla.assignment_hours': 2,
+    'cancellation.grace_hours': 4,
+    'no_show.release_minutes': 60,
+    'license.expiry_warning_days': 30,
+    'fuel.auto_match_miles_tolerance': 50,
+    'max_reservation_days': 30,
+    'blackout_check_enabled': true,
+    'approval.escalation_hours': 24,
+    'violation.escalation_days': 30,
+    'violation.block_days': 45,
+    'document.expiry_warning_days': 30,
+    'maintenance.approval_threshold': 0,
+    'maintenance.default_duration_days': 1
+};
+
+/**
+ * Returns a Fleet property value typed like its default (number / boolean / string).
+ * @param {string} name - property name with or without the scope prefix, e.g. 'pm.interval_miles'
+ * @param {*} [fallback] - overrides the built-in default
+ * @returns {number|boolean|string}
+ */
+FleetConfig.get = function(name, fallback) {
+    var key = name.indexOf(FleetConfig.PREFIX) === 0 ? name.substring(FleetConfig.PREFIX.length) : name;
+    var def = (typeof fallback !== 'undefined') ? fallback : FleetConfig.DEFAULTS[key];
+    var raw = gs.getProperty(FleetConfig.PREFIX + key);
+    if (raw === null || typeof raw === 'undefined' || String(raw).trim() === '') {
+        return def;
+    }
+    raw = String(raw).trim();
+    if (typeof def === 'boolean') {
+        return raw === 'true';
+    }
+    if (typeof def === 'number') {
+        var n = Number(raw);
+        return isNaN(n) ? def : n;
+    }
+    return raw;
+};
+
+FleetConfig.prototype = {
+    initialize: function() {},
+    type: 'FleetConfig'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 23:47:42</sys_created_on>
+        <sys_id>7cc5343dc34893182e36b41ed401312c</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetConfig</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_7cc5343dc34893182e36b41ed401312c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 23:47:42</sys_updated_on>
+    </sys_script_include>
+</record_update>
