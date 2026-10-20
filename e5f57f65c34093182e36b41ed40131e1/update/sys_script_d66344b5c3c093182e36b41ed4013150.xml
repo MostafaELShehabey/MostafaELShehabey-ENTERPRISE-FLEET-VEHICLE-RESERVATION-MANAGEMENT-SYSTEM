@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_driver_license</collection>
+        <condition/>
+        <description>One license per employee; expiration after today on insert; sets is_valid = expiration_date &gt; today.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Driver License - Validate and set validi</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-16: one license per employee; expiration after today on insert; maintain is_valid
+    var today = new GlideDateTime().getLocalDate().getValue();
+    var exp = current.getValue('expiration_date');
+
+    var dup = new GlideRecord('x_1850693_enterp_0_driver_license');
+    dup.addQuery('employee', current.getValue('employee'));
+    dup.addQuery('sys_id', '!=', current.getUniqueValue());
+    dup.setLimit(1);
+    dup.query();
+    if (dup.hasNext()) {
+        gs.addErrorMessage('This employee already has a driver license record.');
+        current.setAbortAction(true);
+        return;
+    }
+
+    if (current.isNewRecord() && exp && exp <= today) {
+        gs.addErrorMessage('Expiration Date must be after today.');
+        current.setAbortAction(true);
+        return;
+    }
+
+    current.setValue('is_valid', !!exp && exp > today);
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:07:43</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>d66344b5c3c093182e36b41ed4013150</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Driver License - Validate and set validi</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_d66344b5c3c093182e36b41ed4013150</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:07:43</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=d66344b5c3c093182e36b41ed4013150"/>
+</record_update>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="df53cc75c3c093182e36b41ed40131d1" label="Driver License" max_length="40" name="x_1850693_enterp_0_driver_license" type="collection">
+        <element attributes="ignore_filter_on_new=true" default="javascript:global.getNextObjNumberPadded();" label="Number" max_length="40" name="number" read_only="true" type="string"/>
+        <element display="true" label="Employee" mandatory="true" max_length="32" name="employee" reference="sys_user" type="reference"/>
+        <element label="License Number" mandatory="true" max_length="255" name="license_number" type="password2"/>
+        <element label="Is Valid" max_length="40" name="is_valid" read_only="true" type="boolean"/>
+        <element choice="1" label="Endorsements" max_length="255" name="endorsements" type="glide_list">
+            <choice>
+                <element inactive_on_update="false" label="Hazmat" sequence="100" value="HAZMAT"/>
+                <element inactive_on_update="false" label="Passenger" sequence="200" value="PASSENGER"/>
+            </choice>
+        </element>
+        <element label="Expiration Date" mandatory="true" max_length="40" name="expiration_date" type="glide_date"/>
+        <element label="Defensive Driving Certificate Date" max_length="40" name="defensive_driving_cert_date" type="glide_date"/>
+        <index name="index">
+            <element name="employee"/>
+        </index>
+    </element>
+</database>

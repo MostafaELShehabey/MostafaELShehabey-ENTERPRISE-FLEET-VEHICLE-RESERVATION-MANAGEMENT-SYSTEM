@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetLicenseUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-16: driver license validity checks.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetLicenseUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetLicenseUtils = Class.create();
+
+/**
+ * FLEET-16: true if the user has a driver license whose expiration_date is on or after the given date.
+ * @param {string} userSysId - sys_user sys_id
+ * @param {GlideDateTime|string} [gdt] - date to check (defaults to now)
+ * @returns {boolean}
+ */
+FleetLicenseUtils.isValidOn = function(userSysId, gdt) {
+    if (!userSysId) {
+        return false;
+    }
+    var lic = new GlideRecord('x_1850693_enterp_0_driver_license');
+    lic.addQuery('employee', userSysId);
+    lic.setLimit(1);
+    lic.query();
+    if (!lic.next() || lic.expiration_date.nil()) {
+        return false;
+    }
+    var when = gdt ? new GlideDateTime(gdt) : new GlideDateTime();
+    return lic.getValue('expiration_date') >= when.getLocalDate().getValue();
+};
+
+FleetLicenseUtils.prototype = {
+    initialize: function() {},
+    type: 'FleetLicenseUtils'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:07:43</sys_created_on>
+        <sys_id>166344b5c3c093182e36b41ed401315b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetLicenseUtils</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_166344b5c3c093182e36b41ed401315b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:07:43</sys_updated_on>
+    </sys_script_include>
+</record_update>
