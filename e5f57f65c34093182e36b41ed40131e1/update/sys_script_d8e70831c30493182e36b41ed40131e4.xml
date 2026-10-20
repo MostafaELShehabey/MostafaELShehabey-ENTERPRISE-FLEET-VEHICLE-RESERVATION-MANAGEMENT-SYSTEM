@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_maintenance</collection>
+        <condition/>
+        <description>Expected end default (D-15), SCHEDULED/COMPLETED required fields, actual dates, short description, task.active.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Maintenance - Defaults and validation</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-20: maintenance defaults and validation (D-01, D-13, D-15, D-16)
+    var CLOSED = ['COMPLETED', 'CANCELLED'];
+    var isInsert = current.operation() == 'insert';
+    var state = current.getValue('maintenance_state');
+    var entering = isInsert || current.maintenance_state.changes();
+    var errors = [];
+
+    // D-15: default expected_end_date = scheduled_date + maintenance.default_duration_days
+    if (!current.scheduled_date.nil() && current.expected_end_date.nil()) {
+        var days = parseInt(gs.getProperty('x_1850693_enterp_0.maintenance.default_duration_days', '1'), 10);
+        var end = new GlideDate();
+        end.setValue(current.getValue('scheduled_date'));
+        end.addDaysUTC(isNaN(days) ? 1 : days);
+        current.setValue('expected_end_date', end.getValue());
+    }
+    if (!current.scheduled_date.nil() && !current.expected_end_date.nil() &&
+        current.getValue('expected_end_date') < current.getValue('scheduled_date')) {
+        errors.push('Expected End Date cannot be before Scheduled Date.');
+    }
+
+    if (entering && state == 'SCHEDULED' && (current.scheduled_date.nil() || current.expected_end_date.nil())) {
+        errors.push('Scheduled Date and Expected End Date are required to schedule maintenance.');
+    }
+    if (entering && state == 'COMPLETED' && current.getValue('maintenance_type') == 'PREVENTIVE' && current.service_odometer.nil()) {
+        errors.push('Odometer at Service is required to complete preventive maintenance.');
+    }
+
+    if (errors.length) {
+        for (var i = 0; i < errors.length; i++) {
+            gs.addErrorMessage(errors[i]);
+        }
+        current.setAbortAction(true);
+        return;
+    }
+
+    if (entering && state == 'IN_PROGRESS' && current.actual_start_date.nil()) {
+        current.setValue('actual_start_date', new GlideDateTime().getValue());
+    }
+    if (entering && state == 'COMPLETED' && current.actual_end_date.nil()) {
+        current.setValue('actual_end_date', new GlideDateTime().getValue());
+    }
+
+    if (current.short_description.nil()) {
+        current.setValue('short_description', current.maintenance_type.getDisplayValue() + ' maintenance - ' +
+            current.vehicle.getDisplayValue());
+    }
+
+    // D-01: task.active follows maintenance_state
+    current.setValue('active', CLOSED.indexOf(state) < 0);
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:27:15</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>d8e70831c30493182e36b41ed40131e4</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Maintenance - Defaults and validation</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_d8e70831c30493182e36b41ed40131e4</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:27:15</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=d8e70831c30493182e36b41ed40131e4"/>
+</record_update>

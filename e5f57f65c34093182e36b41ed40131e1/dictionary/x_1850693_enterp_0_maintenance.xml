@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="3b970cfdc3c093182e36b41ed40131bd" extends="task" label="Maintenance" max_length="40" name="x_1850693_enterp_0_maintenance" type="collection">
+        <element choice="3" default="MEDIUM" label="Urgency" max_length="40" name="urgency_level" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Medium" sequence="200" value="MEDIUM"/>
+                <element inactive_on_update="false" label="Low" sequence="100" value="LOW"/>
+                <element inactive_on_update="false" label="High" sequence="300" value="HIGH"/>
+            </choice>
+        </element>
+        <element label="Vendor Name" max_length="100" name="vendor_name" type="string"/>
+        <element label="Scheduled Date" name="scheduled_date" type="glide_date"/>
+        <element label="Odometer at Service" name="service_odometer" type="integer"/>
+        <element label="Reservation" max_length="32" name="reservation" reference="x_1850693_enterp_0_reservation" type="reference"/>
+        <element label="Expected End Date" name="expected_end_date" type="glide_date"/>
+        <element choice="3" default="REQUESTED" label="Maintenance State" mandatory="true" max_length="40" name="maintenance_state" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Scheduled" sequence="200" value="SCHEDULED"/>
+                <element inactive_on_update="false" label="In Progress" sequence="300" value="IN_PROGRESS"/>
+                <element inactive_on_update="false" label="Requested" sequence="100" value="REQUESTED"/>
+                <element inactive_on_update="false" label="Cancelled" sequence="500" value="CANCELLED"/>
+                <element inactive_on_update="false" label="Completed" sequence="400" value="COMPLETED"/>
+            </choice>
+        </element>
+        <element label="Actual End Date" name="actual_end_date" type="glide_date_time"/>
+        <element label="Estimated Cost" name="estimated_cost" type="currency"/>
+        <element label="Repair Description" mandatory="true" max_length="2000" name="repair_description" type="string"/>
+        <element label="Reported By" max_length="32" name="reported_by" reference="sys_user" type="reference"/>
+        <element label="Vehicle" mandatory="true" max_length="32" name="vehicle" reference="x_1850693_enterp_0_vehicle" type="reference"/>
+        <element label="Actual Start Date" name="actual_start_date" type="glide_date_time"/>
+        <element choice="1" label="Maintenance Type" mandatory="true" max_length="40" name="maintenance_type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Inspection" sequence="300" value="INSPECTION"/>
+                <element inactive_on_update="false" label="Preventive" sequence="100" value="PREVENTIVE"/>
+                <element inactive_on_update="false" label="Corrective" sequence="200" value="CORRECTIVE"/>
+            </choice>
+        </element>
+    </element>
+</database>
