@@ -70,6 +70,20 @@
             <sys_updated_by>admin</sys_updated_by>
             <sys_updated_on>2026-10-20 20:38:59</sys_updated_on>
         </sys_ui_related_list_entry>
+        <sys_ui_related_list_entry action="INSERT_OR_UPDATE">
+            <filter/>
+            <list_id display_value="Reservation - Default view" name="x_1850693_enterp_0_reservation" related_list="NULL" sys_domain="global" view="Default view">cdb64c7dc3c093182e36b41ed4013111</list_id>
+            <order_by/>
+            <position>5</position>
+            <related_list>x_1850693_enterp_0_fuel_transaction.reservation</related_list>
+            <sys_class_name>sys_ui_related_list_entry</sys_class_name>
+            <sys_created_by>admin</sys_created_by>
+            <sys_created_on>2026-10-20 20:43:59</sys_created_on>
+            <sys_id>61bb0879c30493182e36b41ed4013156</sys_id>
+            <sys_mod_count>0</sys_mod_count>
+            <sys_updated_by>admin</sys_updated_by>
+            <sys_updated_on>2026-10-20 20:43:59</sys_updated_on>
+        </sys_ui_related_list_entry>
         <sys_ui_related_list action="INSERT_OR_UPDATE">
             <calculated_name>Reservation - Default view</calculated_name>
             <filter/>
