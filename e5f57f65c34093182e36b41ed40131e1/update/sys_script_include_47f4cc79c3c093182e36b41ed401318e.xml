@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetBlackoutUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-18: blackout overlap check.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetBlackoutUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetBlackoutUtils = Class.create();
+
+/**
+ * FLEET-18: true if any blackout overlaps the range (start < blackout.end AND end > blackout.start)
+ * and applies to the depot (affected_depots empty = all depots).
+ * Touching boundaries do not overlap.
+ * @param {GlideDateTime|string} startGdt - range start (UTC internal value when a string)
+ * @param {GlideDateTime|string} endGdt - range end
+ * @param {string} [depotSysId] - cmn_location sys_id; empty = any depot
+ * @returns {boolean}
+ */
+FleetBlackoutUtils.overlaps = function(startGdt, endGdt, depotSysId) {
+    if (!startGdt || !endGdt) {
+        return false;
+    }
+    var start = new GlideDateTime(startGdt);
+    var end = new GlideDateTime(endGdt);
+
+    var blk = new GlideRecord('x_1850693_enterp_0_blackout');
+    blk.addQuery('start_datetime', '<', end.getValue());
+    blk.addQuery('end_datetime', '>', start.getValue());
+    if (depotSysId) {
+        blk.addEncodedQuery('affected_depotsISEMPTY^ORaffected_depotsLIKE' + depotSysId);
+    }
+    blk.setLimit(1);
+    blk.query();
+    return blk.hasNext();
+};
+
+FleetBlackoutUtils.prototype = {
+    initialize: function() {},
+    type: 'FleetBlackoutUtils'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:14:36</sys_created_on>
+        <sys_id>47f4cc79c3c093182e36b41ed401318e</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetBlackoutUtils</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_47f4cc79c3c093182e36b41ed401318e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:14:36</sys_updated_on>
+    </sys_script_include>
+</record_update>
