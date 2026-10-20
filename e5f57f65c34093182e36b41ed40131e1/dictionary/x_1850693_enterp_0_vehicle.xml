@@ -12,6 +12,7 @@
         <element default="0" label="Last Maintenance Odometer" mandatory="true" max_length="40" name="last_maintenance_odometer" type="integer"/>
         <element default="javascript:current.getTableName();" label="Class" max_length="80" name="sys_class_name" type="sys_class_name"/>
         <element display="true" label="Vehicle ID" mandatory="true" max_length="40" name="vehicle_id" type="string" unique="true"/>
+        <element label="Fuel Card Assigned" max_length="32" name="fuel_card_assigned" read_only="true" reference="x_1850693_enterp_0_fuel_card" type="reference"/>
         <element label="License Plate" mandatory="true" max_length="20" name="license_plate" type="string"/>
         <element label="Registration Expiry" mandatory="true" max_length="40" name="registration_expiry" type="glide_date"/>
         <element label="Assigned Driver" max_length="32" name="assigned_driver" reference="sys_user" type="reference"/>
@@ -43,6 +44,9 @@
             <element name="depot_location"/>
         </index>
         <index name="index3">
+            <element name="fuel_card_assigned"/>
+        </index>
+        <index name="index4">
             <element name="sys_class_name"/>
         </index>
     </element>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_fuel_card</collection>
+        <condition/>
+        <description>Last 4 digits format, daily limit (&gt; 0 when ACTIVE, 0 when LOST), one ACTIVE card per vehicle.</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Fuel Card - Validate</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-17: card number format, daily limit rules, one ACTIVE card per vehicle
+    var last4 = (current.getValue('card_number_last4') || '').trim();
+    if (!/^[0-9]{4}$/.test(last4)) {
+        gs.addErrorMessage('Card Number Last 4 must be exactly 4 digits.');
+        current.setAbortAction(true);
+        return;
+    }
+
+    var status = current.getValue('status');
+    if (status == 'LOST') {
+        current.setValue('daily_limit', 0);
+    } else if (status == 'ACTIVE' && !(parseFloat(current.getValue('daily_limit')) > 0)) {
+        gs.addErrorMessage('Daily Limit must be greater than 0 for an ACTIVE card.');
+        current.setAbortAction(true);
+        return;
+    }
+
+    var vehicle = current.getValue('assigned_vehicle');
+    if (vehicle && status == 'ACTIVE') {
+        var other = new GlideRecord('x_1850693_enterp_0_fuel_card');
+        other.addQuery('assigned_vehicle', vehicle);
+        other.addQuery('status', 'ACTIVE');
+        other.addQuery('sys_id', '!=', current.getUniqueValue());
+        other.setLimit(1);
+        other.query();
+        if (other.next()) {
+            gs.addErrorMessage('Vehicle ' + current.assigned_vehicle.getDisplayValue() + ' already has an ACTIVE fuel card (' + other.getValue('card_number_last4') + ').');
+            current.setAbortAction(true);
+        }
+    }
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 20:12:06</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>ee648839c3c093182e36b41ed401317a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Fuel Card - Validate</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_ee648839c3c093182e36b41ed401317a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 20:12:06</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=ee648839c3c093182e36b41ed401317a"/>
+</record_update>
