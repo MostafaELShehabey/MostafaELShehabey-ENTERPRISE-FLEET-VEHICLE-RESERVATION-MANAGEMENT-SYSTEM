@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="f8a94cf1c30493182e36b41ed40131b3" label="Damage" max_length="40" name="x_1850693_enterp_0_damage" type="collection">
+        <element choice="3" default="REPORTED" label="Status" mandatory="true" max_length="40" name="status" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Waived" sequence="400" value="WAIVED"/>
+                <element inactive_on_update="false" label="Repaired" sequence="300" value="REPAIRED"/>
+                <element inactive_on_update="false" label="Under Review" sequence="200" value="UNDER_REVIEW"/>
+                <element inactive_on_update="false" label="Reported" sequence="100" value="REPORTED"/>
+            </choice>
+        </element>
+        <element choice="1" label="Severity" mandatory="true" max_length="40" name="severity" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Minor" sequence="100" value="MINOR"/>
+                <element inactive_on_update="false" label="Severe" sequence="300" value="SEVERE"/>
+                <element inactive_on_update="false" label="Moderate" sequence="200" value="MODERATE"/>
+            </choice>
+        </element>
+        <element label="Vehicle" mandatory="true" max_length="32" name="vehicle" reference="x_1850693_enterp_0_vehicle" type="reference"/>
+        <element attributes="ignore_filter_on_new=true" default="javascript:global.getNextObjNumberPadded();" display="true" label="Number" max_length="40" name="number" read_only="true" type="string"/>
+        <element label="Description" mandatory="true" max_length="1000" name="description" type="string"/>
+        <element label="Reservation" mandatory="true" max_length="32" name="reservation" reference="x_1850693_enterp_0_reservation" type="reference"/>
+        <element default="javascript:gs.getUserID()" label="Reported By" mandatory="true" max_length="32" name="reported_by" reference="sys_user" type="reference"/>
+        <element choice="1" label="Damage Type" mandatory="true" max_length="40" name="damage_type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="Other" sequence="500" value="OTHER"/>
+                <element inactive_on_update="false" label="Scratch" sequence="100" value="SCRATCH"/>
+                <element inactive_on_update="false" label="Crack" sequence="300" value="CRACK"/>
+                <element inactive_on_update="false" label="Broken Part" sequence="400" value="BROKEN_PART"/>
+                <element inactive_on_update="false" label="Dent" sequence="200" value="DENT"/>
+            </choice>
+        </element>
+        <element label="Repair Cost" max_length="20" name="repair_cost" type="currency"/>
+        <index name="index">
+            <element name="reported_by"/>
+        </index>
+        <index name="index2">
+            <element name="reservation"/>
+        </index>
+        <index name="index3">
+            <element name="vehicle"/>
+        </index>
+    </element>
+</database>
