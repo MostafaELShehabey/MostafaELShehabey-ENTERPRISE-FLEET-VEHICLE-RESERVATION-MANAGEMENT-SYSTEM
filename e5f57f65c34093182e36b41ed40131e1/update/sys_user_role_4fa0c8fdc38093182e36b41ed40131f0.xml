@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_user_role">
+    <sys_user_role action="INSERT_OR_UPDATE">
+        <assignable_by/>
+        <can_delegate>true</can_delegate>
+        <description>Company Driver (D-20).</description>
+        <elevated_privilege>false</elevated_privilege>
+        <federated_id>Dh+bLxdDE06OP85d5RA+YbUE6Uc5G/miVL8NomfevZ8=</federated_id>
+        <grantable>true</grantable>
+        <includes_roles/>
+        <name>x_1850693_enterp_0.driver</name>
+        <scoped_admin>false</scoped_admin>
+        <suffix>driver</suffix>
+        <sys_class_name>sys_user_role</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 19:55:46</sys_created_on>
+        <sys_id>4fa0c8fdc38093182e36b41ed40131f0</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1850693_enterp_0.driver</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_user_role_4fa0c8fdc38093182e36b41ed40131f0</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 19:55:46</sys_updated_on>
+    </sys_user_role>
+</record_update>

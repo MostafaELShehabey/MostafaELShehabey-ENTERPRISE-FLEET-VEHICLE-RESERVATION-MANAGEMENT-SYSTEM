@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_user_role_contains">
+    <sys_user_role_contains action="INSERT_OR_UPDATE">
+        <contains display_value="x_1850693_enterp_0.user" name="x_1850693_enterp_0.user">6ea08c39c38093182e36b41ed40131b0</contains>
+        <role display_value="x_1850693_enterp_0.tech" name="x_1850693_enterp_0.tech">93a00cfdc38093182e36b41ed4013109</role>
+        <sys_class_name>sys_user_role_contains</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 19:56:25</sys_created_on>
+        <sys_id>20d08031c3c093182e36b41ed40131bb</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1850693_enterp_0.user.x_1850693_enterp_0.tech</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_user_role_contains_20d08031c3c093182e36b41ed40131bb</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 19:56:25</sys_updated_on>
+    </sys_user_role_contains>
+</record_update>
