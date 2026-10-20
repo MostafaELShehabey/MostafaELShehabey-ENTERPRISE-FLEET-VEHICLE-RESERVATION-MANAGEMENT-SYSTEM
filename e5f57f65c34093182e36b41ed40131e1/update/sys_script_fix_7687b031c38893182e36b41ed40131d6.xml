@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_fix">
+    <sys_script_fix action="INSERT_OR_UPDATE">
+        <before>false</before>
+        <description>Re-runnable loader for Fleet reference and demo data (depots, cost centers, users, vehicles, licenses, fuel cards, blackout). Encrypted fields are written with setDisplayValue() (D-06).</description>
+        <name>FLEET-29 Load Fleet demo data</name>
+        <record_for_rollback>false</record_for_rollback>
+        <script><![CDATA[// FLEET-29: Load Fleet reference and demo data (re-runnable, no duplicates).
+// Encrypted fields (license_number, pin_code) are written with setDisplayValue() (D-06).
+(function loadFleetDemoData() {
+    var P = 'x_1850693_enterp_0';
+    var T = {
+        vehicle: P + '_vehicle',
+        license: P + '_driver_license',
+        card: P + '_fuel_card',
+        blackout: P + '_blackout'
+    };
+    var log = [];
+
+    function upsert(table, keyField, keyValue, values) {
+        var gr = new GlideRecord(table);
+        gr.addQuery(keyField, keyValue);
+        gr.setLimit(1);
+        gr.query();
+        var isNew = !gr.next();
+        if (isNew) {
+            gr.initialize();
+            gr.setValue(keyField, keyValue);
+        }
+        for (var f in values) {
+            if (f.charAt(0) == '!') {
+                gr[f.substring(1)].setDisplayValue(values[f]); // encrypted / display-value fields
+            } else {
+                gr.setValue(f, values[f]);
+            }
+        }
+        var id = isNew ? gr.insert() : (gr.update() ? gr.getUniqueValue() : '');
+        if (!id) {
+            log.push('FAILED ' + table + ' ' + keyValue);
+        }
+        return id || gr.getUniqueValue();
+    }
+
+    function addDays(days) {
+        var d = new GlideDateTime();
+        d.addDaysLocalTime(days);
+        return d.getLocalDate().getValue();
+    }
+
+    function member(groupName, userId) {
+        var g = new GlideRecord('sys_user_group');
+        if (!g.get('name', groupName)) {
+            log.push('missing group ' + groupName);
+            return;
+        }
+        var m = new GlideRecord('sys_user_grmember');
+        m.addQuery('group', g.getUniqueValue());
+        m.addQuery('user', userId);
+        m.query();
+        if (!m.hasNext()) {
+            m.initialize();
+            m.setValue('group', g.getUniqueValue());
+            m.setValue('user', userId);
+            m.insert();
+        }
+    }
+
+    // Depots (3, scaled down from 12)
+    var depot = {
+        north: upsert('cmn_location', 'name', 'Fleet Depot - Riyadh', { city: 'Riyadh', country: 'Saudi Arabia' }),
+        west: upsert('cmn_location', 'name', 'Fleet Depot - Jeddah', { city: 'Jeddah', country: 'Saudi Arabia' }),
+        east: upsert('cmn_location', 'name', 'Fleet Depot - Dammam', { city: 'Dammam', country: 'Saudi Arabia' })
+    };
+
+    // Cost centers (3)
+    var cc = {
+        sales: upsert('cmn_cost_center', 'name', 'Fleet Demo - Sales', { code: 'FLT-SAL' }),
+        ops: upsert('cmn_cost_center', 'name', 'Fleet Demo - Operations', { code: 'FLT-OPS' }),
+        eng: upsert('cmn_cost_center', 'name', 'Fleet Demo - Engineering', { code: 'FLT-ENG' })
+    };
+
+    // Users: 1 per role + 2 requesters + 1 driver who is not a requester (D-20). No passwords are set.
+    function user(id, first, last, values) {
+        values = values || {};
+        values.first_name = first;
+        values.last_name = last;
+        values.email = id + '@example.com';
+        values.active = true;
+        return upsert('sys_user', 'user_name', id, values);
+    }
+    var u = {};
+    u.director = user('fleet.director', 'Dana', 'Director', { location: depot.north, cost_center: cc.ops });
+    u.approver = user('fleet.approver', 'Adam', 'Approver', { location: depot.north, manager: u.director, cost_center: cc.sales });
+    u.requester1 = user('fleet.requester1', 'Rana', 'Requester', { location: depot.north, manager: u.approver, cost_center: cc.sales });
+    u.requester2 = user('fleet.requester2', 'Omar', 'Requester', { location: depot.west, manager: u.approver, cost_center: cc.eng });
+    u.driver = user('fleet.driver', 'Khalid', 'Driver', { location: depot.north, manager: u.approver, cost_center: cc.ops });
+    u.dispatcher = user('fleet.dispatcher', 'Sara', 'Dispatcher', { location: depot.north, manager: u.director, cost_center: cc.ops }); // D-10
+    u.tech = user('fleet.tech', 'Tariq', 'Technician', { location: depot.north, manager: u.director, cost_center: cc.ops });
+    u.admin = user('fleet.admin', 'Amal', 'Administrator', { location: depot.north, cost_center: cc.ops });
+
+    // Roles through groups only (FLEET-26, D-21). FLEET-26 has no group for the admin role, so one is added here.
+    var adminGroup = upsert('sys_user_group', 'name', 'Fleet Administrators', { description: 'Fleet application administrators (x_1850693_enterp_0.admin)' });
+    var adminRole = new GlideRecord('sys_user_role');
+    if (adminRole.get('name', P + '.admin')) {
+        var gh = new GlideRecord('sys_group_has_role');
+        gh.addQuery('group', adminGroup);
+        gh.addQuery('role', adminRole.getUniqueValue());
+        gh.query();
+        if (!gh.hasNext()) {
+            gh.initialize();
+            gh.setValue('group', adminGroup);
+            gh.setValue('role', adminRole.getUniqueValue());
+            gh.setValue('inherits', true);
+            gh.insert();
+        }
+    }
+    member('Fleet Requesters', u.requester1);
+    member('Fleet Requesters', u.requester2);
+    member('Fleet Requesters', u.approver);
+    member('Fleet Approvers', u.approver);
+    member('Fleet Drivers', u.driver);
+    member('Fleet Dispatchers', u.dispatcher);
+    member('Fleet Directors', u.director);
+    member('Fleet Maintenance', u.tech);
+    member('Fleet Administrators', u.admin);
+
+    // Vehicles (10): all 4 categories, mixed statuses, 1 near PM threshold, 1 registration expiring < 30 days
+    var V = [
+        // id, plate, vin, make, model, year, category, status, odo, lastOdo, regDays, depot, driver
+        ['FLEET-1001', 'RUH-1001', 'A10001', 'Toyota', 'Camry', 2024, 'SEDAN', 'AVAILABLE', 12000, 10000, 300, 'north', ''],
+        ['FLEET-1002', 'RUH-1002', 'A10002', 'Hyundai', 'Sonata', 2023, 'SEDAN', 'AVAILABLE', 14900, 10000, 250, 'north', ''], // near PM (next = 15000)
+        ['FLEET-1003', 'RUH-1003', 'A10003', 'Toyota', 'Land Cruiser', 2024, 'SUV', 'AVAILABLE', 8000, 5000, 20, 'north', ''], // registration < 30 days
+        ['FLEET-1004', 'JED-1004', 'A10004', 'Nissan', 'Patrol', 2022, 'SUV', 'AVAILABLE', 30500, 30000, 200, 'west', ''],
+        ['FLEET-1005', 'JED-1005', 'A10005', 'Ford', 'Transit', 2023, 'CARGO_VAN', 'AVAILABLE', 22000, 20000, 180, 'west', ''],
+        ['FLEET-1006', 'DMM-1006', 'A10006', 'Mercedes', 'Sprinter', 2021, 'CARGO_VAN', 'MAINTENANCE', 61000, 55000, 150, 'east', ''],
+        ['FLEET-1007', 'DMM-1007', 'A10007', 'Isuzu', 'NPR', 2022, 'BOX_TRUCK', 'AVAILABLE', 40000, 38000, 120, 'east', ''],
+        ['FLEET-1008', 'RUH-1008', 'A10008', 'Hino', '300', 2020, 'BOX_TRUCK', 'RETIRED', 210000, 205000, 60, 'north', ''],
+        ['FLEET-1009', 'RUH-1009', 'A10009', 'Toyota', 'Corolla', 2025, 'SEDAN', 'IN_CUSTODY', 3000, 0, 330, 'north', 'driver'],
+        ['FLEET-1010', 'JED-1010', 'A10010', 'Chevrolet', 'Tahoe', 2024, 'SUV', 'AVAILABLE', 9000, 5000, 280, 'west', '']
+    ];
+    var veh = {};
+    for (var i = 0; i < V.length; i++) {
+        var v = V[i];
+        veh[v[0]] = upsert(T.vehicle, 'vehicle_id', v[0], {
+            license_plate: v[1], vin: v[2], make: v[3], model: v[4], year: v[5],
+            vehicle_category: v[6], status: v[7], current_odometer: v[8], last_maintenance_odometer: v[9],
+            last_maintenance_date: addDays(-60), next_state_inspection_date: addDays(200),
+            registration_expiry: addDays(v[10]), insurance_expiry: addDays(365),
+            depot_location: depot[v[11]], assigned_driver: v[12] ? u[v[12]] : ''
+        });
+    }
+
+    // Driver licenses: 1 valid, 1 expired, 1 expiring in under 30 days
+    upsert(T.license, 'employee', u.driver, { '!license_number': 'DL-DEMO-0001', expiration_date: addDays(730), endorsements: 'PASSENGER' });
+    upsert(T.license, 'employee', u.requester1, { '!license_number': 'DL-DEMO-0002', expiration_date: addDays(20) });
+    // Expired: insert with a future date (insert rule), then move it into the past
+    var expId = upsert(T.license, 'employee', u.requester2, { '!license_number': 'DL-DEMO-0003', expiration_date: addDays(10) });
+    var exp = new GlideRecord(T.license);
+    if (exp.get(expId)) {
+        exp.setValue('expiration_date', addDays(-5));
+        exp.update();
+    }
+
+    // Fuel cards: 3 ACTIVE
+    upsert(T.card, 'card_number_last4', '7001', { cardholder: u.driver, assigned_vehicle: veh['FLEET-1001'], '!pin_code': '4821', status: 'ACTIVE', daily_limit: 300 });
+    upsert(T.card, 'card_number_last4', '7002', { cardholder: u.dispatcher, assigned_vehicle: veh['FLEET-1005'], '!pin_code': '5932', status: 'ACTIVE', daily_limit: 500 });
+    upsert(T.card, 'card_number_last4', '7003', { cardholder: u.driver, assigned_vehicle: veh['FLEET-1007'], '!pin_code': '6043', status: 'ACTIVE', daily_limit: 800 });
+
+    // Blackout: 1 future period for one depot
+    var bs = new GlideDateTime();
+    bs.addDaysLocalTime(30);
+    var be = new GlideDateTime(bs);
+    be.addDaysLocalTime(2);
+    upsert(T.blackout, 'name', 'Demo - Jeddah depot closure', {
+        start_datetime: bs.getValue(), end_datetime: be.getValue(),
+        affected_depots: depot.west, reason: 'Depot resurfacing works (demo data)'
+    });
+
+    gs.info('FLEET-29 demo data loaded. ' + (log.length ? 'Issues: ' + log.join('; ') : 'No issues.'));
+    return log;
+})();]]></script>
+        <sys_class_name>sys_script_fix</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-20 23:55:30</sys_created_on>
+        <sys_id>7687b031c38893182e36b41ed40131d6</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FLEET-29 Load Fleet demo data</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_fix_7687b031c38893182e36b41ed40131d6</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-20 23:55:30</sys_updated_on>
+        <unloadable>false</unloadable>
+    </sys_script_fix>
+</record_update>
