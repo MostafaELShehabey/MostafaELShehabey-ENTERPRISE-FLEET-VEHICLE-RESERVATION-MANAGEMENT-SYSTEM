@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetPreventiveMaintenance</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-39: Preventive Maintenance Scanner and PM completion reset.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetPreventiveMaintenance</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetPreventiveMaintenance = Class.create();
+FleetPreventiveMaintenance.prototype = {
+    // FLEET-39: Preventive Maintenance Scanner (PRD 5.1, 6.4, TC-08; D-15)
+    VEH: 'x_1850693_enterp_0_vehicle',
+    MNT: 'x_1850693_enterp_0_maintenance',
+    RES: 'x_1850693_enterp_0_reservation',
+    OPEN_PM: ['REQUESTED', 'SCHEDULED', 'IN_PROGRESS'],
+    WEEKEND: [5, 6], // getDayOfWeekUTC: 5 = Friday, 6 = Saturday (Saudi work week Sun-Thu)
+    LOOKAHEAD_DAYS: 14,
+
+    initialize: function() {},
+
+    /** Creates one SCHEDULED PREVENTIVE maintenance per due vehicle. Returns the created numbers. */
+    scan: function() {
+        var created = [];
+        var intervalMiles = FleetConfig.get('pm.interval_miles');
+        var intervalDays = FleetConfig.get('pm.interval_days');
+        var today = new GlideDateTime().getLocalDate().getValue();
+        var v = new GlideRecord(this.VEH);
+        v.addQuery('status', 'NOT IN', 'RETIRED,MAINTENANCE');
+        v.orderBy('vehicle_id');
+        v.query();
+        while (v.next()) {
+            var num = this.scanVehicle(v, today, intervalMiles, intervalDays);
+            if (num) {
+                created.push(num);
+            }
+        }
+        gs.info('FLEET - Preventive Maintenance Scanner: created ' + created.length + ' PM record(s) ' + created.join(', '));
+        return created;
+    },
+
+    /** One vehicle: returns the new PM number, or '' when not due / already has an open PM. */
+    scanVehicle: function(v, today, intervalMiles, intervalDays) {
+        today = today || new GlideDateTime().getLocalDate().getValue();
+        intervalMiles = intervalMiles || FleetConfig.get('pm.interval_miles');
+        intervalDays = intervalDays || FleetConfig.get('pm.interval_days');
+        if (this.hasOpenPM(v.getUniqueValue())) {
+            return '';
+        }
+        var due = this.dueInfo(v, today, intervalMiles, intervalDays);
+        if (!due.due) {
+            return '';
+        }
+        var m = new GlideRecord(this.MNT);
+        m.initialize();
+        m.setValue('vehicle', v.getUniqueValue());
+        m.setValue('maintenance_type', 'PREVENTIVE');
+        m.setValue('urgency_level', 'LOW');
+        m.setValue('maintenance_state', 'SCHEDULED');
+        m.setValue('scheduled_date', this.nextServiceDay(v.getUniqueValue()));
+        // expected_end_date = scheduled_date + maintenance.default_duration_days ("Maintenance - Defaults and validation")
+        m.setValue('repair_description', 'Preventive maintenance due: ' + due.miles + ' miles / ' + due.days + ' days since last service.');
+        m.setValue('short_description', 'Preventive maintenance - ' + v.getValue('vehicle_id'));
+        return m.insert() ? m.getValue('number') : ''; // SCHEDULED on insert -> FLEET-41 approval + reservation impact
+    },
+
+    hasOpenPM: function(vehicleId) {
+        var m = new GlideRecord(this.MNT);
+        m.addQuery('vehicle', vehicleId);
+        m.addQuery('maintenance_type', 'PREVENTIVE');
+        m.addQuery('maintenance_state', 'IN', this.OPEN_PM.join(','));
+        m.setLimit(1);
+        m.query();
+        return m.hasNext();
+    },
+
+    /** {due, miles, days}: miles/days since the last service (no last date = since the vehicle was created). */
+    dueInfo: function(v, today, intervalMiles, intervalDays) {
+        var miles = (parseInt(v.getValue('current_odometer'), 10) || 0) - (parseInt(v.getValue('last_maintenance_odometer'), 10) || 0);
+        var since = v.getValue('last_maintenance_date') || new GlideDateTime(v.getValue('sys_created_on')).getLocalDate().getValue();
+        var days = Math.floor((new GlideDateTime(today + ' 00:00:00').getNumericValue() -
+            new GlideDateTime(since + ' 00:00:00').getNumericValue()) / 86400000);
+        return { due: miles >= intervalMiles || days >= intervalDays, miles: miles, days: days };
+    },
+
+    /** Next business day (from tomorrow) whose PM window has no ASSIGNED/READY_FOR_PICKUP/ACTIVE trip; else the first business day. */
+    nextServiceDay: function(vehicleId) {
+        var duration = Math.max(1, FleetConfig.get('maintenance.default_duration_days'));
+        var first = '';
+        var d = new GlideDateTime(new GlideDateTime().getLocalDate().getValue() + ' 12:00:00'); // date arithmetic at noon UTC
+        for (var i = 0; i < this.LOOKAHEAD_DAYS; i++) {
+            d.addDaysUTC(1);
+            if (this.WEEKEND.indexOf(d.getDayOfWeekUTC()) > -1) {
+                continue;
+            }
+            var day = d.getDate().getValue();
+            if (!first) {
+                first = day;
+            }
+            var end = new GlideDateTime(day + ' 12:00:00');
+            end.addDaysUTC(duration);
+            if (!this._hasTrip(vehicleId, day, end.getDate().getValue())) {
+                return day;
+            }
+        }
+        return first;
+    },
+
+    /** PM completion: reset the vehicle's service counters (next_oil_change_mileage recalculated by the vehicle BR). */
+    resetCounters: function(m) {
+        var v = new GlideRecord(this.VEH);
+        if (!v.get(m.getValue('vehicle'))) {
+            return false;
+        }
+        var odo = parseInt(m.getValue('service_odometer'), 10);
+        if (parseInt(v.getValue('current_odometer'), 10) < odo) {
+            v.setValue('current_odometer', odo);
+        }
+        v.setValue('last_maintenance_odometer', odo);
+        var end = m.actual_end_date.nil() ? new GlideDateTime() : new GlideDateTime(m.getValue('actual_end_date'));
+        v.setValue('last_maintenance_date', end.getLocalDate().getValue());
+        return !!v.update();
+    },
+
+    /** Any blocking trip of the vehicle overlapping [startDate 00:00, endDate 00:00) local. */
+    _hasTrip: function(vehicleId, startDate, endDate) {
+        var r = new GlideRecord(this.RES);
+        r.addQuery('assigned_vehicle', vehicleId);
+        r.addQuery('reservation_state', 'IN', 'ASSIGNED,READY_FOR_PICKUP,ACTIVE');
+        r.query();
+        while (r.next()) {
+            var s = new GlideDateTime(r.getValue('start_datetime')).getLocalDate().getValue();
+            var e = new GlideDateTime(r.getValue('end_datetime')).getLocalDate().getValue();
+            if (s < endDate && e >= startDate) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    type: 'FleetPreventiveMaintenance'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 08:31:42</sys_created_on>
+        <sys_id>28bd2231c308d3182e36b41ed4013122</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetPreventiveMaintenance</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_28bd2231c308d3182e36b41ed4013122</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 08:31:42</sys_updated_on>
+    </sys_script_include>
+</record_update>
