@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetVehicleStatus</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-33: derived vehicle status (sync / compute).</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetVehicleStatus</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetVehicleStatus = Class.create();
+FleetVehicleStatus.prototype = {
+    // FLEET-33: vehicle status is derived from maintenance, custody and active trips (never edited by hand except RETIRED)
+    VEH: 'x_1850693_enterp_0_vehicle',
+
+    initialize: function() {},
+
+    /** Status the vehicle should have, evaluated in the FLEET-33 order. */
+    compute: function(vehicle) {
+        var id = vehicle.getUniqueValue();
+        if (vehicle.getValue('status') == 'RETIRED') {
+            return 'RETIRED';
+        }
+        var m = new GlideRecord('x_1850693_enterp_0_maintenance');
+        m.addEncodedQuery('vehicle=' + id + '^maintenance_state=IN_PROGRESS^NQvehicle=' + id + '^maintenance_type=CORRECTIVE^urgency_level=HIGH^active=true');
+        m.setLimit(1);
+        m.query();
+        if (m.hasNext()) {
+            return 'MAINTENANCE'; // D-15
+        }
+        if (!vehicle.assigned_driver.nil()) {
+            return 'IN_CUSTODY';
+        }
+        var r = new GlideRecord('x_1850693_enterp_0_reservation');
+        r.addQuery('assigned_vehicle', id);
+        r.addQuery('reservation_state', 'ACTIVE');
+        r.setLimit(1);
+        r.query();
+        if (r.hasNext()) {
+            return 'RESERVED';
+        }
+        return 'AVAILABLE';
+    },
+
+    /** Recomputes and saves the status of one vehicle. Returns the status. */
+    sync: function(vehicleId) {
+        if (!vehicleId) {
+            return '';
+        }
+        var v = new GlideRecord(this.VEH);
+        if (!v.get(vehicleId)) {
+            return '';
+        }
+        var status = this.compute(v);
+        if (v.getValue('status') != status) {
+            v.setValue('status', status);
+            v.setWorkflow(false); // status only; vehicle data rules are not re-run
+            v.update();
+        }
+        return status;
+    },
+
+    type: 'FleetVehicleStatus'
+};
+FleetVehicleStatus.sync = function(vehicleId) {
+    return new FleetVehicleStatus().sync(vehicleId);
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 00:27:45</sys_created_on>
+        <sys_id>dfee747dc38893182e36b41ed401316a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetVehicleStatus</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_dfee747dc38893182e36b41ed401316a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 00:27:45</sys_updated_on>
+    </sys_script_include>
+</record_update>

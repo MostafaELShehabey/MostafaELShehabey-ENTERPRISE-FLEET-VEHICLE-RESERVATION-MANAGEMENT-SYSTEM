@@ -89,19 +89,44 @@ FleetSecurity.prototype = {
         return this.has('requester') && this.isOwn(res) && res.getValue('reservation_state') == 'DRAFT';
     },
 
+
+    /** Vehicle read (FLEET-62): director all; dispatcher depot; others AVAILABLE + vehicles on own trips */
+    canReadVehicle: function(v) {
+        if (this.has('director')) {
+            return true;
+        }
+        if (this.has('dispatcher') && this.isMyDepot(v.getValue('depot_location'))) {
+            return true;
+        }
+        if (v.getValue('status') == 'AVAILABLE') {
+            return true;
+        }
+        var r = new GlideRecord('x_1850693_enterp_0_reservation');
+        r.addQuery('assigned_vehicle', v.getUniqueValue());
+        r.addEncodedQuery('requested_by=' + this.uid + '^ORassigned_driver=' + this.uid);
+        r.setLimit(1);
+        r.query();
+        return r.hasNext();
+    },
+
+    /** Vehicle write (FLEET-62): dispatcher own depot, director/admin all */
+    canWriteVehicle: function(v) {
+        return this.has('director') || (this.has('dispatcher') && this.isMyDepot(v.getValue('depot_location')));
+    },
+
     type: 'FleetSecurity'
 };]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2026-10-21 00:10:49</sys_created_on>
         <sys_id>930bf0f5c38893182e36b41ed4013153</sys_id>
-        <sys_mod_count>1</sys_mod_count>
+        <sys_mod_count>2</sys_mod_count>
         <sys_name>FleetSecurity</sys_name>
         <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
         <sys_policy/>
         <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
         <sys_update_name>sys_script_include_930bf0f5c38893182e36b41ed4013153</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2026-10-21 00:13:45</sys_updated_on>
+        <sys_updated_on>2026-10-21 00:27:45</sys_updated_on>
     </sys_script_include>
 </record_update>
