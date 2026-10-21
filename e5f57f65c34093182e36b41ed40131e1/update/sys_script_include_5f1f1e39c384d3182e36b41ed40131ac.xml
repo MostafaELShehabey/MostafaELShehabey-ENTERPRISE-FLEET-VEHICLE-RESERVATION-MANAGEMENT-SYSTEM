@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetWaitlist</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-36: waitlist processor.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetWaitlist</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetWaitlist = Class.create();
+FleetWaitlist._running = false;
+FleetWaitlist.prototype = {
+    // FLEET-36: waitlist processing (D-09 order: waitlist_priority, start_datetime, sys_created_on)
+    RES: 'x_1850693_enterp_0_reservation',
+
+    initialize: function() {},
+
+    /**
+     * Expires waitlist entries whose start has passed, then moves entries back to PENDING_ASSIGNMENT
+     * while free vehicles exist (one vehicle per entry in a run). Returns {expired, released}.
+     */
+    process: function() {
+        var result = { expired: 0, released: 0 };
+        if (FleetWaitlist._running) {
+            return result; // re-entrant call (e.g. from a cancellation inside this run)
+        }
+        FleetWaitlist._running = true;
+        try {
+            var now = new GlideDateTime();
+            var exp = new GlideRecord(this.RES);
+            exp.addQuery('reservation_state', 'WAITLISTED');
+            exp.addQuery('start_datetime', '<=', now.getValue());
+            exp.query();
+            var actions = new FleetReservationActions();
+            while (exp.next()) {
+                if (actions.cancel(exp.getUniqueValue(), 'No vehicle available', { system: true }).ok) {
+                    result.expired++;
+                }
+            }
+
+            var avail = new FleetAvailability();
+            var w = new GlideRecord(this.RES);
+            w.addQuery('reservation_state', 'WAITLISTED');
+            w.orderBy('waitlist_priority');
+            w.orderBy('start_datetime');
+            w.orderBy('sys_created_on');
+            w.query();
+            while (w.next()) {
+                var start = new GlideDateTime(w.getValue('start_datetime'));
+                var end = new GlideDateTime(w.getValue('end_datetime'));
+                var free = avail.getAvailableVehicles(w.getValue('vehicle_category'), w.getValue('requested_depot'), start, end, w.getUniqueValue());
+                // Requests already queued for the same kind of vehicle and period (not yet assigned) compete for the same vehicles
+                var competing = this._queuedCompetitors(w, start, end);
+                if (free.length <= competing) {
+                    continue; // dispatcher-notify mode: no auto-assign, so never release more requests than free vehicles
+                }
+                var res = new GlideRecord(this.RES);
+                res.get(w.getUniqueValue());
+                res.setValue('reservation_state', 'PENDING_ASSIGNMENT');
+                res.work_notes = 'Vehicle available again - moved from the waitlist back to the assignment queue.';
+                if (res.update()) {
+                    gs.eventQueue('x_1850693_enterp_0.waitlist.available', res, free[0], '');
+                    result.released++;
+                }
+            }
+        } finally {
+            FleetWaitlist._running = false;
+        }
+        return result;
+    },
+
+
+    _queuedCompetitors: function(w, start, end) {
+        var q = new GlideRecord(this.RES);
+        q.addQuery('reservation_state', 'PENDING_ASSIGNMENT');
+        q.addNullQuery('assigned_vehicle');
+        q.addQuery('vehicle_category', w.getValue('vehicle_category'));
+        q.addQuery('requested_depot', w.getValue('requested_depot'));
+        q.addQuery('start_datetime', '<', end.getValue());
+        q.addQuery('end_datetime', '>', start.getValue());
+        q.addQuery('sys_id', '!=', w.getUniqueValue());
+        q.query();
+        return q.getRowCount();
+    },
+
+    type: 'FleetWaitlist'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 07:28:00</sys_created_on>
+        <sys_id>5f1f1e39c384d3182e36b41ed40131ac</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>FleetWaitlist</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_5f1f1e39c384d3182e36b41ed40131ac</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 07:30:34</sys_updated_on>
+    </sys_script_include>
+</record_update>
