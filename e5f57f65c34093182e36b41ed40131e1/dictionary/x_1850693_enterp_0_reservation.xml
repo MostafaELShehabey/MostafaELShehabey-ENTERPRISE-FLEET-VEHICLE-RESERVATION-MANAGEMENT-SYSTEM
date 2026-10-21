@@ -51,7 +51,7 @@
         </element>
         <element label="Cancellation Reason" max_length="250" name="cancellation_reason" type="string"/>
         <element label="Replaces Reservation" max_length="32" name="replaces_reservation" read_only="true" reference="x_1850693_enterp_0_reservation" type="reference"/>
-        <element label="Assigned Vehicle" max_length="32" name="assigned_vehicle" reference="x_1850693_enterp_0_vehicle" type="reference"/>
+        <element label="Assigned Vehicle" max_length="32" name="assigned_vehicle" reference="x_1850693_enterp_0_vehicle" reference_qual="javascript:new x_1850693_enterp_0.FleetAvailability().refQual(current)" type="reference" use_reference_qualifier="advanced"/>
         <element label="Recurring Parent" max_length="32" name="recurring_parent_id" reference="x_1850693_enterp_0_reservation" type="reference"/>
         <element default="0" label="Violation Count" name="violation_count" read_only="true" type="integer"/>
     </element>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_1850693_enterp_0_reservation</collection>
+        <condition/>
+        <description>Aborts when the assigned vehicle is not free (FleetAvailability.isVehicleFree).</description>
+        <execute_function>false</execute_function>
+        <filter_condition/>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>FLEET - Prevent Double Booking</name>
+        <order>300</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+    // FLEET-32: FLEET - Prevent Double Booking (insert and update; assignment happens on update)
+    if (current.assigned_vehicle.nil() || current.start_datetime.nil() || current.end_datetime.nil()) {
+        return;
+    }
+    var TERMINAL = ['COMPLETED', 'CANCELLED', 'REJECTED', 'NO_SHOW', 'INTERRUPTED'];
+    if (TERMINAL.indexOf(current.getValue('reservation_state')) > -1) {
+        return;
+    }
+    var relevant = current.operation() == 'insert' || current.assigned_vehicle.changes() ||
+        current.start_datetime.changes() || current.end_datetime.changes();
+    if (!relevant) {
+        return;
+    }
+    var free = new FleetAvailability().isVehicleFree(current.getValue('assigned_vehicle'),
+        new GlideDateTime(current.getValue('start_datetime')), new GlideDateTime(current.getValue('end_datetime')),
+        current.getUniqueValue());
+    if (!free) {
+        gs.addErrorMessage('Vehicle ' + current.assigned_vehicle.getDisplayValue() +
+            ' is not available for this period (booked, in maintenance, or documents expire).');
+        current.setAbortAction(true);
+    }
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 00:23:15</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>51ed787dc38893182e36b41ed40131c2</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FLEET - Prevent Double Booking</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_51ed787dc38893182e36b41ed40131c2</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 00:23:15</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=51ed787dc38893182e36b41ed40131c2"/>
+</record_update>

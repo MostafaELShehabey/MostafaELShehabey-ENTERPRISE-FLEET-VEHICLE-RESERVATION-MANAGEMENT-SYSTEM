@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetAvailability</api_name>
+        <caller_access/>
+        <client_callable>true</client_callable>
+        <description>FLEET-32: vehicle availability engine (server + GlideAjax).</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetAvailability</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetAvailability = Class.create();
+FleetAvailability.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+    // FLEET-32: one definition of "available" for the dispatcher picker, the portal and the double-booking rule
+    VEH: 'x_1850693_enterp_0_vehicle',
+    RES: 'x_1850693_enterp_0_reservation',
+    MNT: 'x_1850693_enterp_0_maintenance',
+    USABLE_STATUS: ['AVAILABLE', 'RESERVED'],
+    BLOCKING_RES_STATES: ['ASSIGNED', 'READY_FOR_PICKUP', 'ACTIVE'], // cancelled never blocks (D-03)
+    BLOCKING_MNT_STATES: ['SCHEDULED', 'IN_PROGRESS'],
+
+    /** Vehicles free for the whole period: usable status, category/depot match, valid documents, no overlaps. */
+    getAvailableVehicles: function(category, depot, startGdt, endGdt, excludeReservationId) {
+        var ids = [];
+        var v = new GlideRecord(this.VEH);
+        v.addQuery('status', 'IN', this.USABLE_STATUS.join(','));
+        if (category) {
+            v.addQuery('vehicle_category', category);
+        }
+        if (depot) {
+            v.addQuery('depot_location', depot);
+        }
+        v.orderBy('vehicle_id');
+        v.query();
+        while (v.next()) {
+            if (this._isFree(v, startGdt, endGdt, excludeReservationId)) {
+                ids.push(v.getUniqueValue());
+            }
+        }
+        return ids;
+    },
+
+    /** Same checks as getAvailableVehicles for one vehicle. */
+    isVehicleFree: function(vehicleId, startGdt, endGdt, excludeReservationId) {
+        var v = new GlideRecord(this.VEH);
+        if (!v.get(vehicleId) || this.USABLE_STATUS.indexOf(v.getValue('status')) < 0) {
+            return false;
+        }
+        return this._isFree(v, startGdt, endGdt, excludeReservationId);
+    },
+
+    /** Available vehicles per depot right now (same definition, so portal and workspace counts match). */
+    countAvailableByDepot: function() {
+        var start = new GlideDateTime();
+        var end = new GlideDateTime();
+        end.addSeconds(3600);
+        var counts = {};
+        var ids = this.getAvailableVehicles('', '', start, end, '');
+        var v = new GlideRecord(this.VEH);
+        v.addQuery('sys_id', 'IN', ids.join(','));
+        v.query();
+        while (v.next()) {
+            var d = v.getValue('depot_location') || 'none';
+            if (!counts[d]) {
+                counts[d] = { name: v.depot_location.getDisplayValue() || '(no depot)', count: 0 };
+            }
+            counts[d].count++;
+        }
+        return counts;
+    },
+
+    /** Reference qualifier for reservation.assigned_vehicle. */
+    refQual: function(res) {
+        if (res.start_datetime.nil() || res.end_datetime.nil()) {
+            return 'statusIN' + this.USABLE_STATUS.join(',');
+        }
+        var ids = this.getAvailableVehicles(res.getValue('vehicle_category'), res.getValue('requested_depot'),
+            new GlideDateTime(res.getValue('start_datetime')), new GlideDateTime(res.getValue('end_datetime')), res.getUniqueValue());
+        if (!res.assigned_vehicle.nil()) {
+            ids.push(res.getValue('assigned_vehicle')); // keep the current value selectable
+        }
+        return 'sys_idIN' + ids.join(',');
+    },
+
+    /** GlideAjax: sysparm_category, sysparm_depot, sysparm_start, sysparm_end (UTC) -> JSON [{sys_id, vehicle_id, ...}] */
+    ajaxGetAvailableVehicles: function() {
+        var start = new GlideDateTime(this.getParameter('sysparm_start'));
+        var end = new GlideDateTime(this.getParameter('sysparm_end'));
+        var ids = this.getAvailableVehicles(this.getParameter('sysparm_category'), this.getParameter('sysparm_depot'), start, end, '');
+        var out = [];
+        var v = new GlideRecord(this.VEH);
+        v.addQuery('sys_id', 'IN', ids.join(','));
+        v.orderBy('vehicle_id');
+        v.query();
+        while (v.next()) {
+            out.push({ sys_id: v.getUniqueValue(), vehicle_id: v.getValue('vehicle_id'), make: v.getValue('make'),
+                model: v.getValue('model'), category: v.getValue('vehicle_category'), depot: v.depot_location.getDisplayValue() });
+        }
+        return JSON.stringify(out);
+    },
+
+    /** GlideAjax: available count per depot -> JSON {depotSysId: {name, count}} */
+    ajaxCountAvailableByDepot: function() {
+        return JSON.stringify(this.countAvailableByDepot());
+    },
+
+    _isFree: function(v, startGdt, endGdt, excludeReservationId) {
+        if (!startGdt || !endGdt) {
+            return true;
+        }
+        var start = new GlideDateTime(startGdt);
+        var end = new GlideDateTime(endGdt);
+        var endDate = end.getLocalDate().getValue();
+        if (v.registration_expiry.nil() || v.getValue('registration_expiry') <= endDate ||
+            v.insurance_expiry.nil() || v.getValue('insurance_expiry') <= endDate) {
+            return false; // documents must be valid after the trip ends
+        }
+        return !this._hasBlockingReservation(v.getUniqueValue(), start, end, excludeReservationId) &&
+            !this._hasBlockingMaintenance(v.getUniqueValue(), start, end);
+    },
+
+    _hasBlockingReservation: function(vehicleId, start, end, excludeReservationId) {
+        var r = new GlideRecord(this.RES);
+        r.addQuery('assigned_vehicle', vehicleId);
+        r.addQuery('reservation_state', 'IN', this.BLOCKING_RES_STATES.join(','));
+        r.addQuery('start_datetime', '<', end.getValue());
+        r.addQuery('end_datetime', '>', start.getValue()); // back-to-back (end = next start) is allowed
+        if (excludeReservationId) {
+            r.addQuery('sys_id', '!=', excludeReservationId);
+        }
+        r.setLimit(1);
+        r.query();
+        return r.hasNext();
+    },
+
+    _hasBlockingMaintenance: function(vehicleId, start, end) {
+        var startDate = start.getLocalDate().getValue();
+        var endDate = end.getLocalDate().getValue();
+        // D-15: open CORRECTIVE with urgency HIGH blocks regardless of dates
+        var high = new GlideRecord(this.MNT);
+        high.addQuery('vehicle', vehicleId);
+        high.addQuery('maintenance_type', 'CORRECTIVE');
+        high.addQuery('urgency_level', 'HIGH');
+        high.addQuery('active', true);
+        high.setLimit(1);
+        high.query();
+        if (high.hasNext()) {
+            return true;
+        }
+        // D-15: scheduled / in-progress maintenance window (whole days) overlapping the trip
+        var m = new GlideRecord(this.MNT);
+        m.addQuery('vehicle', vehicleId);
+        m.addQuery('maintenance_state', 'IN', this.BLOCKING_MNT_STATES.join(','));
+        m.addNotNullQuery('scheduled_date');
+        m.addQuery('scheduled_date', '<=', endDate);
+        m.query();
+        while (m.next()) {
+            var windowEnd = m.getValue('expected_end_date') || m.getValue('scheduled_date');
+            if (windowEnd >= startDate) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    type: 'FleetAvailability'
+});]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 00:23:14</sys_created_on>
+        <sys_id>49edfcf9c38893182e36b41ed4013130</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>FleetAvailability</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_49edfcf9c38893182e36b41ed4013130</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 00:23:15</sys_updated_on>
+    </sys_script_include>
+</record_update>
