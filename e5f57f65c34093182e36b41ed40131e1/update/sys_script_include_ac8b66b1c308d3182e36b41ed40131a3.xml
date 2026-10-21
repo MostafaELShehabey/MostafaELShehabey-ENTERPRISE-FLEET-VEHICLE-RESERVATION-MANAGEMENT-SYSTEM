@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetMaintenance</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-41: maintenance lifecycle, work-order approval (D-13) and reservation impact.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetMaintenance</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetMaintenance = Class.create();
+FleetMaintenance.prototype = {
+    // FLEET-41: maintenance lifecycle, work-order approval (D-13) and impact on reservations (D-02, D-15)
+    MNT: 'x_1850693_enterp_0_maintenance',
+    RES: 'x_1850693_enterp_0_reservation',
+    EVT: 'x_1850693_enterp_0.',
+    TRANSITIONS: {
+        REQUESTED: ['SCHEDULED', 'CANCELLED'],
+        SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
+        IN_PROGRESS: ['COMPLETED']
+        // COMPLETED and CANCELLED are terminal
+    },
+    INITIAL: ['REQUESTED', 'SCHEDULED'], // SCHEDULED on insert = Preventive Maintenance Scanner (FLEET-39)
+    IMPACTED_STATES: ['ASSIGNED', 'READY_FOR_PICKUP'],
+
+    initialize: function() {},
+
+    /** Error message for an invalid state change, or ''. */
+    checkTransition: function(m, previous) {
+        var to = m.getValue('maintenance_state');
+        if (!previous) {
+            return this.INITIAL.indexOf(to) > -1 ? '' : 'Invalid initial maintenance state ' + to + '.';
+        }
+        var from = previous.getValue('maintenance_state');
+        if (from == to) {
+            return '';
+        }
+        if ((this.TRANSITIONS[from] || []).indexOf(to) < 0) {
+            return 'Invalid maintenance state change from ' + from + ' to ' + to + '.';
+        }
+        if (to == 'IN_PROGRESS' && ['requested', 'rejected'].indexOf(m.getValue('approval')) > -1) {
+            return 'Work cannot start until the work order is approved by a Fleet Director (approval: ' + m.approval.getDisplayValue() + ').';
+        }
+        if (to == 'CANCELLED' && !(m.work_notes.toString() || '').trim()) {
+            return 'Enter the cancellation reason in Work notes to cancel maintenance.';
+        }
+        return '';
+    },
+
+    /** D-13: approval is needed when estimated_cost is above maintenance.approval_threshold (0 = always). */
+    needsApproval: function(m) {
+        var threshold = FleetConfig.get('maintenance.approval_threshold');
+        var cost = parseFloat(m.estimated_cost.getReferenceValue()) || 0;
+        return threshold <= 0 || cost > threshold;
+    },
+
+    /** Creates one approval per Fleet Director (once while requested). */
+    requestApproval: function(m) {
+        var open = new GlideRecord('sysapproval_approver');
+        open.addQuery('sysapproval', m.getUniqueValue());
+        open.addQuery('state', 'requested');
+        open.setLimit(1);
+        open.query();
+        if (open.hasNext()) {
+            return 0;
+        }
+        var count = 0;
+        var mem = new GlideRecord('sys_user_grmember');
+        mem.addQuery('group.name', 'Fleet Directors');
+        mem.addQuery('user.active', true);
+        mem.query();
+        while (mem.next()) {
+            var ap = new GlideRecord('sysapproval_approver');
+            ap.initialize();
+            ap.setValue('approver', mem.getValue('user'));
+            ap.setValue('sysapproval', m.getUniqueValue());
+            ap.setValue('source_table', this.MNT);
+            ap.setValue('document_id', m.getUniqueValue());
+            ap.setValue('state', 'requested');
+            if (ap.insert()) {
+                count++;
+            }
+        }
+        return count;
+    },
+
+    /** Applies a director's decision (sysapproval_approver BR) to the work order. */
+    applyDecision: function(approval) {
+        var m = new GlideRecord(this.MNT);
+        if (!m.get(approval.getValue('sysapproval')) || m.getValue('approval') != 'requested') {
+            return;
+        }
+        var state = approval.getValue('state');
+        if (state != 'approved' && state != 'rejected') {
+            return;
+        }
+        this._closeOtherApprovals(m.getUniqueValue(), approval.getUniqueValue());
+        m.setValue('approval', state);
+        m.work_notes = 'Work order ' + state + ' by ' + approval.approver.getDisplayValue() +
+            (state == 'rejected' ? ' - stays SCHEDULED for a new quote (update Estimated Cost to request approval again).' : '.');
+        m.update();
+    },
+
+    /** UI Actions Approve / Reject Work Order: decides the director's approval (or any open one). */
+    decideWorkOrder: function(m, decision) {
+        var ap = new GlideRecord('sysapproval_approver');
+        ap.addQuery('sysapproval', m.getUniqueValue());
+        ap.addQuery('state', 'requested');
+        ap.query();
+        var mine = null;
+        var any = null;
+        while (ap.next()) {
+            if (!any) {
+                any = ap.getUniqueValue();
+            }
+            if (ap.getValue('approver') == gs.getUserID()) {
+                mine = ap.getUniqueValue();
+                break;
+            }
+        }
+        var id = mine || any;
+        if (!id) {
+            var w = new GlideRecord(this.MNT);
+            w.get(m.getUniqueValue());
+            w.setValue('approval', decision);
+            w.work_notes = 'Work order ' + decision + ' by ' + gs.getUserDisplayName() + '.';
+            return !!w.update();
+        }
+        var rec = new GlideRecord('sysapproval_approver');
+        rec.get(id);
+        if (!mine) {
+            rec.comments = 'Decided on behalf of the Fleet Directors by ' + gs.getUserDisplayName() + '.';
+        }
+        rec.setValue('state', decision);
+        return !!rec.update();
+    },
+
+    /**
+     * Reservations of the vehicle in ASSIGNED / READY_FOR_PICKUP overlapping scheduled_date..expected_end_date
+     * go back to PENDING_ASSIGNMENT (D-02) and the requester + dispatchers are notified (FLEET_MAINTENANCE_IMPACT).
+     * ACTIVE trips are not touched; dispatchers are notified to recall or check them in.
+     * Returns {requeued: [numbers], active: [numbers]}.
+     */
+    handleImpact: function(m) {
+        var out = { requeued: [], active: [] };
+        if (m.vehicle.nil() || m.scheduled_date.nil()) {
+            return out;
+        }
+        var from = m.getValue('scheduled_date');
+        var to = m.getValue('expected_end_date') || from;
+        var r = new GlideRecord(this.RES);
+        r.addQuery('assigned_vehicle', m.getValue('vehicle'));
+        r.addQuery('reservation_state', 'IN', this.IMPACTED_STATES.concat(['ACTIVE']).join(','));
+        r.query();
+        while (r.next()) {
+            var startDate = new GlideDateTime(r.getValue('start_datetime')).getLocalDate().getValue();
+            var endDate = new GlideDateTime(r.getValue('end_datetime')).getLocalDate().getValue();
+            if (startDate > to || endDate < from) {
+                continue; // whole-day window, same rule as FleetAvailability (D-15)
+            }
+            if (r.getValue('reservation_state') == 'ACTIVE') {
+                out.active.push(r.getValue('number'));
+                gs.eventQueue(this.EVT + 'maintenance.impact', m, '', 'Active trip ' + r.getValue('number') +
+                    ' overlaps this maintenance - recall the vehicle or check the trip in.');
+                continue;
+            }
+            var res = new GlideRecord(this.RES);
+            res.get(r.getUniqueValue());
+            var plate = res.assigned_vehicle.getDisplayValue();
+            res.setValue('assigned_vehicle', '');
+            res.setValue('check_out_odometer', '');
+            res.setValue('reservation_state', 'PENDING_ASSIGNMENT');
+            res.work_notes = 'Vehicle ' + plate + ' is scheduled for maintenance ' + m.getValue('number') + ' (' + from +
+                ' to ' + to + '). Reservation returned to the assignment queue.';
+            if (res.update()) {
+                out.requeued.push(res.getValue('number'));
+                gs.eventQueue(this.EVT + 'maintenance.impact', m, res.getValue('requested_by'), 'Reservation ' +
+                    res.getValue('number') + ' has been returned to the assignment queue and will get another vehicle.');
+            }
+        }
+        if (out.requeued.length || out.active.length) {
+            var w = new GlideRecord(this.MNT);
+            if (w.get(m.getUniqueValue())) {
+                w.work_notes = 'Reservation impact - re-queued: ' + (out.requeued.join(', ') || 'none') +
+                    '; active trips to handle: ' + (out.active.join(', ') || 'none') + '.';
+                w.update();
+            }
+        }
+        return out;
+    },
+
+    _closeOtherApprovals: function(maintenanceId, keepId) {
+        var ap = new GlideRecord('sysapproval_approver');
+        ap.addQuery('sysapproval', maintenanceId);
+        ap.addQuery('state', 'requested');
+        ap.addQuery('sys_id', '!=', keepId);
+        ap.query();
+        while (ap.next()) {
+            ap.setValue('state', 'not_required');
+            ap.update();
+        }
+    },
+
+    type: 'FleetMaintenance'
+};
+]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 08:22:09</sys_created_on>
+        <sys_id>ac8b66b1c308d3182e36b41ed40131a3</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>FleetMaintenance</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_ac8b66b1c308d3182e36b41ed40131a3</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 08:25:48</sys_updated_on>
+    </sys_script_include>
+</record_update>
