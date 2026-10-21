@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetReservationMonitor</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-38: no-show release and overdue safety net.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetReservationMonitor</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetReservationMonitor = Class.create();
+FleetReservationMonitor.prototype = {
+    // FLEET-38: Overdue Reservation Monitor (no-show release + D-14 overdue safety net)
+    RES: 'x_1850693_enterp_0_reservation',
+
+    initialize: function() {},
+
+    /** Returns {noShows, overdue}. */
+    run: function() {
+        var result = { noShows: 0, overdue: 0 };
+        var now = new GlideDateTime();
+
+        // Not picked up within start + no_show.release_minutes -> NO_SHOW (D-02, D-03)
+        var cutoff = new GlideDateTime();
+        cutoff.addSeconds(-FleetConfig.get('no_show.release_minutes') * 60);
+        var ns = new GlideRecord(this.RES);
+        ns.addQuery('reservation_state', 'IN', 'ASSIGNED,READY_FOR_PICKUP');
+        ns.addQuery('start_datetime', '<', cutoff.getValue());
+        ns.query();
+        while (ns.next()) {
+            var res = new GlideRecord(this.RES);
+            res.get(ns.getUniqueValue());
+            res.setValue('reservation_state', 'NO_SHOW'); // task.active = false and vehicle sync via the reservation rules
+            res.work_notes = 'Vehicle not picked up within ' + FleetConfig.get('no_show.release_minutes') +
+                ' minutes of the start time - released as NO_SHOW by the Overdue Reservation Monitor.';
+            if (res.update()) {
+                gs.eventQueue('x_1850693_enterp_0.reservation.no_show', res, res.getValue('requested_by'), res.getValue('manager_approver'));
+                result.noShows++;
+            }
+        }
+
+        // D-14 safety net: ACTIVE trips past their end time (the precise setter is FLEET-51)
+        var od = new GlideRecord(this.RES);
+        od.addQuery('reservation_state', 'ACTIVE');
+        od.addQuery('end_datetime', '<', now.getValue());
+        od.addQuery('is_overdue', false);
+        od.query();
+        while (od.next()) {
+            var o = new GlideRecord(this.RES);
+            o.get(od.getUniqueValue());
+            o.setValue('is_overdue', true);
+            if (o.update()) {
+                result.overdue++;
+            }
+        }
+
+        if (result.noShows > 0) {
+            new FleetWaitlist().process(); // released vehicles may serve waitlisted requests
+        }
+        return result;
+    },
+
+    type: 'FleetReservationMonitor'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 07:33:36</sys_created_on>
+        <sys_id>9560e631c3c4d3182e36b41ed40131e0</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetReservationMonitor</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_9560e631c3c4d3182e36b41ed40131e0</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 07:33:36</sys_updated_on>
+    </sys_script_include>
+</record_update>
