@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetReservationValidator</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-30: reservation request rules V1-V7.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetReservationValidator</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetReservationValidator = Class.create();
+FleetReservationValidator.prototype = {
+    // FLEET-30: reservation request rules V1-V7. Each method returns an error message or ''.
+    TERMINAL: ['COMPLETED', 'CANCELLED', 'REJECTED', 'NO_SHOW', 'INTERRUPTED'],
+
+    initialize: function() {},
+
+    /** Runs all rules and returns the list of error messages (empty = valid). */
+    validate: function(res) {
+        var rules = ['v1StartLead', 'v2EndAfterStart', 'v3MaxDuration', 'v4Blackout', 'v5RequesterOverlap', 'v6DriverLicense', 'v7Violations'];
+        var errors = [];
+        for (var i = 0; i < rules.length; i++) {
+            var msg = this[rules[i]](res);
+            if (msg) {
+                errors.push(msg);
+            }
+        }
+        return errors;
+    },
+
+    _start: function(res) {
+        return res.start_datetime.nil() ? null : new GlideDateTime(res.getValue('start_datetime'));
+    },
+
+    _end: function(res) {
+        return res.end_datetime.nil() ? null : new GlideDateTime(res.getValue('end_datetime'));
+    },
+
+    _driver: function(res) {
+        return res.getValue('assigned_driver') || res.getValue('requested_by');
+    },
+
+    /** V1: start at least now + 2h, skipped for recall replacements (D-26) */
+    v1StartLead: function(res) {
+        var start = this._start(res);
+        if (!start || !res.replaces_reservation.nil()) {
+            return '';
+        }
+        var earliest = new GlideDateTime();
+        earliest.addSeconds(2 * 3600);
+        return start.compareTo(earliest) < 0 ? 'Reservation must start at least 2 hours from now.' : '';
+    },
+
+    /** V2: end after start */
+    v2EndAfterStart: function(res) {
+        var start = this._start(res);
+        var end = this._end(res);
+        return (start && end && end.compareTo(start) <= 0) ? 'End must be after start.' : '';
+    },
+
+    /** V3: duration within vehicle.max_reservation_days (if assigned) or property max_reservation_days */
+    v3MaxDuration: function(res) {
+        var start = this._start(res);
+        var end = this._end(res);
+        if (!start || !end || end.compareTo(start) <= 0) {
+            return '';
+        }
+        var max = 0;
+        if (!res.assigned_vehicle.nil() && !res.assigned_vehicle.max_reservation_days.nil()) {
+            max = parseInt(res.assigned_vehicle.max_reservation_days, 10);
+        }
+        if (!max) {
+            max = FleetConfig.get('max_reservation_days');
+        }
+        var days = (end.getNumericValue() - start.getNumericValue()) / 86400000;
+        return days > max ? 'Reservation exceeds the maximum of ' + max + ' days.' : '';
+    },
+
+    /** V4: no blackout for the requested depot (when blackout_check_enabled) */
+    v4Blackout: function(res) {
+        if (!FleetConfig.get('blackout_check_enabled')) {
+            return '';
+        }
+        var start = this._start(res);
+        var end = this._end(res);
+        if (!start || !end) {
+            return '';
+        }
+        var blk = FleetBlackoutUtils.findOverlap(start, end, res.getValue('requested_depot'));
+        return blk ? 'Requested dates overlap blackout "' + blk.getValue('name') + '".' : '';
+    },
+
+    /** V5: requester has no other non-terminal reservation in the same period (replaced one excluded) */
+    v5RequesterOverlap: function(res) {
+        var start = this._start(res);
+        var end = this._end(res);
+        if (!start || !end || res.requested_by.nil()) {
+            return '';
+        }
+        var other = new GlideRecord('x_1850693_enterp_0_reservation');
+        other.addQuery('requested_by', res.getValue('requested_by'));
+        other.addQuery('sys_id', '!=', res.getUniqueValue());
+        if (!res.replaces_reservation.nil()) {
+            other.addQuery('sys_id', '!=', res.getValue('replaces_reservation'));
+        }
+        other.addQuery('reservation_state', 'NOT IN', this.TERMINAL.join(','));
+        other.addQuery('start_datetime', '<', end.getValue());
+        other.addQuery('end_datetime', '>', start.getValue());
+        other.setLimit(1);
+        other.query();
+        return other.hasNext() ? 'You already have a reservation for this period.' : '';
+    },
+
+    /** V6: driver (assigned_driver, default requested_by, D-20) has a license valid through end */
+    v6DriverLicense: function(res) {
+        var end = this._end(res);
+        var driver = this._driver(res);
+        if (!end || !driver) {
+            return '';
+        }
+        return FleetLicenseUtils.isValidOn(driver, end) ? '' : "The driver's license is missing or expires before the trip ends.";
+    },
+
+    /** V7: requester and driver not blocked by overdue violations (D-19; hook until FLEET-47) */
+    v7Violations: function(res) {
+        var users = [res.getValue('requested_by'), this._driver(res)];
+        for (var i = 0; i < users.length; i++) {
+            if (users[i] && FleetViolationUtils.isBlocked(users[i])) {
+                return 'New reservations are blocked until overdue violations are resolved.';
+            }
+        }
+        return '';
+    },
+
+    type: 'FleetReservationValidator'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 00:10:49</sys_created_on>
+        <sys_id>930bf0f5c38893182e36b41ed401314f</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetReservationValidator</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_930bf0f5c38893182e36b41ed401314f</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 00:10:49</sys_updated_on>
+    </sys_script_include>
+</record_update>
