@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetApproval</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-31: manager approval engine for reservations.</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetApproval</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetApproval = Class.create();
+FleetApproval.prototype = {
+    // FLEET-31: manager approval for reservations (sysapproval_approver)
+    RES: 'x_1850693_enterp_0_reservation',
+    EVT: 'x_1850693_enterp_0.',
+
+    initialize: function() {},
+
+    /** Creates the manager approval and fires reservation.submitted (once per entry into PENDING_APPROVAL). */
+    requestApproval: function(res) {
+        var open = new GlideRecord('sysapproval_approver');
+        open.addQuery('sysapproval', res.getUniqueValue());
+        open.addQuery('state', 'requested');
+        open.query();
+        if (!open.hasNext()) {
+            var ap = new GlideRecord('sysapproval_approver');
+            ap.initialize();
+            ap.setValue('approver', res.getValue('manager_approver'));
+            ap.setValue('sysapproval', res.getUniqueValue());
+            ap.setValue('source_table', this.RES);
+            ap.setValue('document_id', res.getUniqueValue());
+            ap.setValue('state', 'requested');
+            ap.insert();
+        }
+        gs.eventQueue(this.EVT + 'reservation.submitted', res, res.getValue('manager_approver'), res.getValue('requested_by'));
+    },
+
+    /** Applies an approval decision to the reservation (called from the sysapproval_approver BR). */
+    applyDecision: function(approval) {
+        var res = new GlideRecord(this.RES);
+        if (!res.get(approval.getValue('sysapproval')) || res.getValue('reservation_state') != 'PENDING_APPROVAL') {
+            return;
+        }
+        var state = approval.getValue('state');
+        // Latest approver comment without the journal header line
+        var entry = approval.comments.getJournalEntry(1) || '';
+        var comments = entry.indexOf('\n') > -1 ? entry.substring(entry.indexOf('\n') + 1).trim() : entry.trim();
+        if (state == 'approved') {
+            res.setValue('approval', 'approved');
+            res.setValue('reservation_state', 'APPROVED');
+            res.update();
+            res.setValue('reservation_state', 'PENDING_ASSIGNMENT'); // D-02 auto-routing
+            res.update();
+        } else if (state == 'rejected') {
+            res.setValue('approval', 'rejected');
+            res.setValue('reservation_state', 'REJECTED');
+            if (comments) {
+                res.comments = 'Rejected by ' + approval.approver.getDisplayValue() + ': ' + comments;
+            }
+            res.update();
+            gs.eventQueue(this.EVT + 'reservation.rejected', res, res.getValue('requested_by'), comments);
+        }
+    },
+
+    /** Cancels open approvals without notifying the manager (§6.3). */
+    cancelOpenApprovals: function(res) {
+        var ap = new GlideRecord('sysapproval_approver');
+        ap.addQuery('sysapproval', res.getUniqueValue());
+        ap.addQuery('state', 'requested');
+        ap.query();
+        while (ap.next()) {
+            ap.setValue('state', 'cancelled');
+            ap.setWorkflow(false);
+            ap.update();
+        }
+    },
+
+    /**
+     * Scheduled: fires approval.overdue for approvals older than approval.escalation_hours, then again
+     * every 24h while still open. The next escalation time is kept in the approval's due_date.
+     */
+    escalateOverdue: function() {
+        var hours = FleetConfig.get('approval.escalation_hours');
+        var now = new GlideDateTime();
+        var cutoff = new GlideDateTime();
+        cutoff.addSeconds(-hours * 3600);
+        var directors = new GlideRecord('sys_user_group');
+        var groupId = directors.get('name', 'Fleet Directors') ? directors.getUniqueValue() : '';
+        var count = 0;
+        var ap = new GlideRecord('sysapproval_approver');
+        ap.addQuery('source_table', this.RES);
+        ap.addQuery('state', 'requested');
+        ap.addQuery('sys_created_on', '<=', cutoff.getValue());
+        ap.addEncodedQuery('due_dateISEMPTY^ORdue_date<=' + now.getValue());
+        ap.query();
+        while (ap.next()) {
+            var res = new GlideRecord(this.RES);
+            if (!res.get(ap.getValue('sysapproval')) || res.getValue('reservation_state') != 'PENDING_APPROVAL') {
+                continue;
+            }
+            gs.eventQueue(this.EVT + 'approval.overdue', res, res.getValue('manager_approver'), groupId);
+            var next = new GlideDateTime();
+            next.addSeconds(24 * 3600);
+            ap.setValue('due_date', next.getValue());
+            ap.setWorkflow(false);
+            ap.update();
+            count++;
+        }
+        return count;
+    },
+
+    type: 'FleetApproval'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 00:17:32</sys_created_on>
+        <sys_id>659c7cb9c38893182e36b41ed401314c</sys_id>
+        <sys_mod_count>2</sys_mod_count>
+        <sys_name>FleetApproval</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_659c7cb9c38893182e36b41ed401314c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 00:19:48</sys_updated_on>
+    </sys_script_include>
+</record_update>
