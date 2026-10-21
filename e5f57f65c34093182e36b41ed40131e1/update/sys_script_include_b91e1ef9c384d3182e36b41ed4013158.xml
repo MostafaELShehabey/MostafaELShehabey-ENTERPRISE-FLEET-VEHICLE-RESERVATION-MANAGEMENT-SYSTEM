@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1850693_enterp_0.FleetReservationActions</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>FLEET-37: reservation actions (cancel) - documented ACL exception (D-03).</description>
+        <mobile_callable>false</mobile_callable>
+        <name>FleetReservationActions</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var FleetReservationActions = Class.create();
+FleetReservationActions.prototype = {
+    // FLEET-37 (D-03, D-24): the only documented exception to the reservation write ACL (FLEET-62).
+    // Changes reservation_state, cancellation_reason, late_cancellation (+ activity) only.
+    RES: 'x_1850693_enterp_0_reservation',
+    CANCELLABLE: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PENDING_ASSIGNMENT', 'WAITLISTED', 'ASSIGNED', 'READY_FOR_PICKUP'],
+    BEFORE_APPROVAL: ['DRAFT', 'PENDING_APPROVAL'],
+
+    initialize: function() {},
+
+    /**
+     * Cancels a reservation after checking the caller and the rules.
+     * @param {string} reservationId
+     * @param {string} reason - mandatory
+     * @param {Object} [options] - {system: true} for system cancellations (FLEET-36 waitlist expiry, FLEET-65 termination)
+     * @returns {{ok: boolean, message: string}}
+     */
+    cancel: function(reservationId, reason, options) {
+        options = options || {};
+        reason = (reason || '').trim();
+        if (!reason) {
+            return this._fail('A cancellation reason is required.');
+        }
+        var res = new GlideRecord(this.RES);
+        if (!res.get(reservationId)) {
+            return this._fail('Reservation not found.');
+        }
+        var state = res.getValue('reservation_state');
+        if (this.CANCELLABLE.indexOf(state) < 0) {
+            return this._fail('Reservations in state ' + state + ' cannot be cancelled.');
+        }
+
+        var actor = this._actor(res, options);
+        if (!actor) {
+            return this._fail('You are not allowed to cancel this reservation.');
+        }
+
+        var late = false;
+        var recipients = [];
+        var dispatchers = this._groupId('Fleet Dispatchers');
+        if (actor.type == 'requester') {
+            if (this.BEFORE_APPROVAL.indexOf(state) < 0) {
+                var hoursToStart = (new GlideDateTime(res.getValue('start_datetime')).getNumericValue() -
+                    new GlideDateTime().getNumericValue()) / 3600000;
+                late = hoursToStart < FleetConfig.get('cancellation.grace_hours'); // D-03: no hold, vehicle released now
+                recipients = [res.getValue('manager_approver'), dispatchers];
+            }
+        } else {
+            recipients = [res.getValue('requested_by')]; // cancelled by someone else (manager, dispatcher, director, system)
+        }
+
+        res.setValue('reservation_state', 'CANCELLED');
+        res.setValue('cancellation_reason', reason);
+        res.setValue('late_cancellation', late);
+        res.work_notes = 'Cancelled by ' + actor.label + (late ? ' (late cancellation)' : '') + ': ' + reason;
+        if (!res.update()) {
+            return this._fail('The reservation could not be cancelled.');
+        }
+        gs.eventQueue('x_1850693_enterp_0.reservation.cancelled', res, this._clean(recipients).join(','), actor.label);
+        return { ok: true, message: 'Reservation ' + res.getValue('number') + ' cancelled' + (late ? ' (late cancellation).' : '.') };
+    },
+
+    _actor: function(res, options) {
+        if (options.system) {
+            return { type: 'system', label: 'System' };
+        }
+        var sec = new FleetSecurity();
+        var name = gs.getUserDisplayName();
+        if (sec.isOwn(res)) {
+            return { type: 'requester', label: name + ' (requester)' };
+        }
+        if (sec.has('director')) {
+            return { type: 'director', label: name + ' (director)' };
+        }
+        if (sec.has('dispatcher') && sec.isMyDepot(res.getValue('requested_depot'))) {
+            return { type: 'dispatcher', label: name + ' (dispatcher)' };
+        }
+        if (sec.isDirectReport(res)) {
+            return { type: 'manager', label: name + ' (manager)' };
+        }
+        return null;
+    },
+
+    _groupId: function(name) {
+        var g = new GlideRecord('sys_user_group');
+        return g.get('name', name) ? g.getUniqueValue() : '';
+    },
+
+    _clean: function(list) {
+        var out = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && out.indexOf(list[i]) < 0) {
+                out.push(list[i]);
+            }
+        }
+        return out;
+    },
+
+    _fail: function(msg) {
+        return { ok: false, message: msg };
+    },
+
+    type: 'FleetReservationActions'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2026-10-21 07:23:31</sys_created_on>
+        <sys_id>b91e1ef9c384d3182e36b41ed4013158</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>FleetReservationActions</sys_name>
+        <sys_package display_value="Enterprise Fleet &amp; Vehicle Reservation" source="x_1850693_enterp_0">e5f57f65c34093182e36b41ed40131e1</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Enterprise Fleet &amp; Vehicle Reservation">e5f57f65c34093182e36b41ed40131e1</sys_scope>
+        <sys_update_name>sys_script_include_b91e1ef9c384d3182e36b41ed4013158</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2026-10-21 07:23:31</sys_updated_on>
+    </sys_script_include>
+</record_update>
